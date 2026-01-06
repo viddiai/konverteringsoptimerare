@@ -556,37 +556,72 @@ WIDGET_JS_TEMPLATE = '''
     const textColor = isDark ? '#f9fafb' : '#111827';
     const mutedColor = isDark ? '#9ca3af' : '#6b7280';
     const primaryColor = config.primaryColor || '#2563eb';
+    const cardBg = isDark ? '#111827' : '#f9fafb';
 
     const stars = '⭐'.repeat(Math.round(data.overall_score));
+    const emptyStars = '☆'.repeat(5 - Math.round(data.overall_score));
 
     result.style.display = 'block';
     result.innerHTML = `
       <div style="color: ${textColor};">
-        <h4 style="margin: 0 0 8px; font-size: 16px;">${data.company_name || 'Analysresultat'}</h4>
-        <p style="margin: 0 0 16px; color: ${mutedColor}; font-size: 13px;">
-          ${(data.company_description || '').substring(0, 150)}...
-        </p>
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
-          <span style="font-size: 24px;">${stars}</span>
-          <span style="color: ${mutedColor}; font-size: 14px;">${data.overall_score}/5</span>
+        <!-- Header med företagsinfo och betyg -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <h4 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">${data.company_name || 'Analysresultat'}</h4>
+            ${data.industry_label ? '<span style="font-size: 11px; color: ' + primaryColor + '; text-transform: uppercase; letter-spacing: 0.5px;">' + data.industry_label + '</span>' : ''}
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 20px; letter-spacing: 2px;">${stars}${emptyStars}</div>
+            <span style="font-size: 14px; font-weight: 600;">${data.overall_score}/5</span>
+          </div>
         </div>
-        <div style="background: ${isDark ? '#374151' : '#fef2f2'}; border-radius: 8px; padding: 16px; margin-bottom: 16px;">
-          <p style="margin: 0 0 8px; font-weight: 600; color: #dc2626; font-size: 14px;">
-            Identifierade problem:
+
+        <!-- Kort beskrivning -->
+        <p style="margin: 0 0 20px; color: ${mutedColor}; font-size: 13px; line-height: 1.5;">
+          ${(data.company_description || '').substring(0, 200)}${(data.company_description || '').length > 200 ? '...' : ''}
+        </p>
+
+        <!-- Identifierade problem -->
+        <div style="background: ${isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2'}; border: 1px solid ${isDark ? 'rgba(220, 38, 38, 0.2)' : '#fecaca'}; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
+          <p style="margin: 0 0 10px; font-weight: 600; color: #dc2626; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+            <span style="font-size: 16px;">⚠️</span> Identifierade problem (${data.issues_count || data.logical_errors.length}):
           </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: ${textColor};">
-            ${data.logical_errors.map(e => '<li style="margin-bottom: 4px;">' + e + '</li>').join('')}
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: ${textColor}; line-height: 1.6;">
+            ${data.logical_errors.map(e => '<li style="margin-bottom: 6px;">' + e + '</li>').join('')}
           </ul>
         </div>
-        <p style="text-align: center; font-weight: 500; color: ${primaryColor}; margin-bottom: 16px; font-size: 14px;">
-          ${data.teaser_text}
-        </p>
+
+        <!-- Sammanfattning -->
+        <div style="background: ${cardBg}; border-radius: 10px; padding: 16px; margin-bottom: 16px; border: 1px solid ${isDark ? '#374151' : '#e5e7eb'};">
+          <p style="margin: 0 0 8px; font-weight: 600; font-size: 14px;">Sammanfattning:</p>
+          <p style="margin: 0; font-size: 13px; color: ${mutedColor}; line-height: 1.6;">
+            ${data.short_description || data.teaser_text}
+          </p>
+        </div>
+
+        <!-- Vad rapporten innehåller -->
+        <div style="background: ${isDark ? 'rgba(16, 185, 129, 0.1)' : '#ecfdf5'}; border: 1px solid ${isDark ? 'rgba(16, 185, 129, 0.2)' : '#a7f3d0'}; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
+          <p style="margin: 0 0 10px; font-weight: 600; color: ${primaryColor}; font-size: 14px;">
+            📊 Den fullständiga rapporten innehåller:
+          </p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: ${textColor}; line-height: 1.7;">
+            <li>Detaljerad analys av era leadmagneter och formulär</li>
+            <li>Granskning av CTA-knappar och konverteringselement</li>
+            <li>Bedömning av varje konverteringskriterium med betyg</li>
+            <li>5 konkreta rekommendationer för ökad konvertering</li>
+          </ul>
+        </div>
+
+        <!-- CTA knapp -->
         <button id="caw-get-report-btn"
-                style="width: 100%; padding: 14px; background: ${primaryColor}; color: white;
-                       border: none; border-radius: 8px; font-size: 15px; font-weight: 600;
-                       cursor: pointer;">
-          Få den fullständiga rapporten
+                style="width: 100%; padding: 16px; background: ${primaryColor}; color: white;
+                       border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
+                       cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          Få den fullständiga rapporten →
         </button>
+        <p style="text-align: center; margin: 12px 0 0; font-size: 11px; color: ${mutedColor};">
+          Gratis • Ingen spam • Levereras direkt
+        </p>
       </div>
     `;
 
