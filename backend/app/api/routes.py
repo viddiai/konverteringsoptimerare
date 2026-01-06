@@ -553,73 +553,118 @@ WIDGET_JS_TEMPLATE = '''
   function showResult(data, config) {
     const result = document.getElementById('caw-result');
     const isDark = (config.theme || 'light') === 'dark';
-    const textColor = isDark ? '#f9fafb' : '#111827';
-    const mutedColor = isDark ? '#9ca3af' : '#6b7280';
-    const primaryColor = config.primaryColor || '#2563eb';
-    const cardBg = isDark ? '#111827' : '#f9fafb';
+    const textColor = isDark ? '#ffffff' : '#111827';
+    const mutedColor = isDark ? 'rgba(255,255,255,0.5)' : '#6b7280';
+    const primaryColor = config.primaryColor || '#10b981';
+    const borderColor = isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb';
+    const cardBg = isDark ? 'rgba(255,255,255,0.02)' : '#f9fafb';
 
-    const stars = '⭐'.repeat(Math.round(data.overall_score));
-    const emptyStars = '☆'.repeat(5 - Math.round(data.overall_score));
+    const score = Math.round(data.overall_score);
+    const starsHtml = Array(5).fill(0).map((_, i) =>
+      i < score
+        ? '<span style="color: ' + primaryColor + ';">★</span>'
+        : '<span style="color: rgba(255,255,255,0.2);">★</span>'
+    ).join('');
 
     result.style.display = 'block';
     result.innerHTML = `
       <div style="color: ${textColor};">
         <!-- Header med företagsinfo och betyg -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
           <div style="flex: 1;">
-            <h4 style="margin: 0 0 4px; font-size: 18px; font-weight: 600;">${data.company_name || 'Analysresultat'}</h4>
-            ${data.industry_label ? '<span style="font-size: 11px; color: ' + primaryColor + '; text-transform: uppercase; letter-spacing: 0.5px;">' + data.industry_label + '</span>' : ''}
+            <h4 style="margin: 0 0 6px; font-size: 20px; font-weight: 500; letter-spacing: -0.02em;">${data.company_name || 'Analysresultat'}</h4>
+            ${data.industry_label ? '<span style="font-size: 10px; color: ' + primaryColor + '; text-transform: uppercase; letter-spacing: 1px; font-weight: 500;">' + data.industry_label + '</span>' : ''}
           </div>
           <div style="text-align: right;">
-            <div style="font-size: 20px; letter-spacing: 2px;">${stars}${emptyStars}</div>
-            <span style="font-size: 14px; font-weight: 600;">${data.overall_score}/5</span>
+            <div style="font-size: 18px; letter-spacing: 2px;">${starsHtml}</div>
+            <span style="font-size: 13px; font-weight: 500; color: ${mutedColor};">${data.overall_score}/5</span>
           </div>
         </div>
 
         <!-- Kort beskrivning -->
-        <p style="margin: 0 0 20px; color: ${mutedColor}; font-size: 13px; line-height: 1.5;">
+        <p style="margin: 0 0 24px; color: ${mutedColor}; font-size: 14px; line-height: 1.6; font-weight: 300;">
           ${(data.company_description || '').substring(0, 200)}${(data.company_description || '').length > 200 ? '...' : ''}
         </p>
 
-        <!-- Identifierade problem -->
-        <div style="background: ${isDark ? 'rgba(220, 38, 38, 0.1)' : '#fef2f2'}; border: 1px solid ${isDark ? 'rgba(220, 38, 38, 0.2)' : '#fecaca'}; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
-          <p style="margin: 0 0 10px; font-weight: 600; color: #dc2626; font-size: 14px; display: flex; align-items: center; gap: 6px;">
-            <span style="font-size: 16px;">⚠️</span> Identifierade problem (${data.issues_count || data.logical_errors.length}):
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: ${textColor}; line-height: 1.6;">
-            ${data.logical_errors.map(e => '<li style="margin-bottom: 6px;">' + e + '</li>').join('')}
-          </ul>
+        <!-- Identifierade problem - minimalistisk stil -->
+        <div style="border: 1px solid ${borderColor}; border-radius: 16px; padding: 20px; margin-bottom: 20px; background: ${cardBg};">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div style="width: 32px; height: 32px; background: rgba(239, 68, 68, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path>
+                <path d="M12 9v4"></path>
+                <path d="M12 17h.01"></path>
+              </svg>
+            </div>
+            <span style="font-size: 14px; font-weight: 500; color: ${textColor};">Identifierade problem</span>
+            <span style="margin-left: auto; font-size: 12px; color: ${mutedColor};">${data.issues_count || data.logical_errors.length} st</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            ${data.logical_errors.map(e => `
+              <div style="display: flex; align-items: flex-start; gap: 12px;">
+                <div style="width: 6px; height: 6px; background: #ef4444; border-radius: 50%; margin-top: 6px; flex-shrink: 0;"></div>
+                <span style="font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; font-weight: 300;">${e}</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
 
         <!-- Sammanfattning -->
-        <div style="background: ${cardBg}; border-radius: 10px; padding: 16px; margin-bottom: 16px; border: 1px solid ${isDark ? '#374151' : '#e5e7eb'};">
-          <p style="margin: 0 0 8px; font-weight: 600; font-size: 14px;">Sammanfattning:</p>
-          <p style="margin: 0; font-size: 13px; color: ${mutedColor}; line-height: 1.6;">
+        <div style="border: 1px solid ${borderColor}; border-radius: 16px; padding: 20px; margin-bottom: 20px; background: ${cardBg};">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+            <div style="width: 32px; height: 32px; background: rgba(255,255,255,0.05); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${mutedColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+              </svg>
+            </div>
+            <span style="font-size: 14px; font-weight: 500; color: ${textColor};">Sammanfattning</span>
+          </div>
+          <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; font-weight: 300;">
             ${data.short_description || data.teaser_text}
           </p>
         </div>
 
         <!-- Vad rapporten innehåller -->
-        <div style="background: ${isDark ? 'rgba(16, 185, 129, 0.1)' : '#ecfdf5'}; border: 1px solid ${isDark ? 'rgba(16, 185, 129, 0.2)' : '#a7f3d0'}; border-radius: 10px; padding: 16px; margin-bottom: 20px;">
-          <p style="margin: 0 0 10px; font-weight: 600; color: ${primaryColor}; font-size: 14px;">
-            📊 Den fullständiga rapporten innehåller:
-          </p>
-          <ul style="margin: 0; padding-left: 20px; font-size: 13px; color: ${textColor}; line-height: 1.7;">
-            <li>Detaljerad analys av era leadmagneter och formulär</li>
-            <li>Granskning av CTA-knappar och konverteringselement</li>
-            <li>Bedömning av varje konverteringskriterium med betyg</li>
-            <li>5 konkreta rekommendationer för ökad konvertering</li>
-          </ul>
+        <div style="border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 16px; padding: 20px; margin-bottom: 24px; background: rgba(16, 185, 129, 0.05);">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 16px;">
+            <div style="width: 32px; height: 32px; background: rgba(16, 185, 129, 0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${primaryColor}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="20" x2="18" y2="10"></line>
+                <line x1="12" y1="20" x2="12" y2="4"></line>
+                <line x1="6" y1="20" x2="6" y2="14"></line>
+              </svg>
+            </div>
+            <span style="font-size: 14px; font-weight: 500; color: ${textColor};">Den fullständiga rapporten</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            ${['Detaljerad analys av leadmagneter och formulär', 'Granskning av CTA-knappar och konverteringselement', 'Betyg på varje konverteringskriterium', '5 konkreta rekommendationer för ökad konvertering'].map(item => `
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="width: 18px; height: 18px; background: rgba(16, 185, 129, 0.1); border-radius: 6px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="${primaryColor}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+                <span style="font-size: 13px; color: rgba(255,255,255,0.7); font-weight: 300;">${item}</span>
+              </div>
+            `).join('')}
+          </div>
         </div>
 
         <!-- CTA knapp -->
         <button id="caw-get-report-btn"
-                style="width: 100%; padding: 16px; background: ${primaryColor}; color: white;
-                       border: none; border-radius: 10px; font-size: 16px; font-weight: 600;
-                       cursor: pointer; transition: opacity 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
-          Få den fullständiga rapporten →
+                style="width: 100%; padding: 16px 24px; background: ${primaryColor}; color: white;
+                       border: none; border-radius: 50px; font-size: 15px; font-weight: 500;
+                       cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;">
+          <span>Få den fullständiga rapporten</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"></path>
+            <path d="m12 5 7 7-7 7"></path>
+          </svg>
         </button>
-        <p style="text-align: center; margin: 12px 0 0; font-size: 11px; color: ${mutedColor};">
+        <p style="text-align: center; margin: 16px 0 0; font-size: 11px; color: ${mutedColor}; font-weight: 300;">
           Gratis • Ingen spam • Levereras direkt
         </p>
       </div>
