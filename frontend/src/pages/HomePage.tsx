@@ -27,8 +27,9 @@ export default function HomePage() {
       setView('success')
       // Redirect to full report (served by backend) after a short delay
       if (data.access_token && analysisData) {
+        const baseUrl = import.meta.env.VITE_API_URL || ''
         setTimeout(() => {
-          window.location.href = `http://localhost:8000/report/${analysisData.report_id}?token=${data.access_token}`
+          window.location.href = `${baseUrl}/report/${analysisData.report_id}?token=${data.access_token}`
         }, 1500)
       }
     },
