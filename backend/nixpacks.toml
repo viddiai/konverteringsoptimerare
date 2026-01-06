@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["python311", "gcc", "cairo", "pkg-config", "gobject-introspection"]
+nixPkgs = ["python311", "gcc", "cairo.dev", "pkg-config", "glib.dev"]
 
 [phases.install]
-cmds = ["python -m venv /opt/venv && . /opt/venv/bin/activate && pip install -r requirements.txt"]
+cmds = ["PKG_CONFIG_PATH=/root/.nix-profile/lib/pkgconfig:$PKG_CONFIG_PATH python -m venv /opt/venv && . /opt/venv/bin/activate && pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
