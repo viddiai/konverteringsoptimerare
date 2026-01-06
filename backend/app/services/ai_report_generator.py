@@ -381,10 +381,16 @@ class AIReportGenerator:
                 'fields': field_names
             })
 
-        # Extract criteria scores from analysis
+        # Extract criteria scores from analysis (these are structural scores - AI may adjust)
         criteria_scores = {}
         for c in self.analysis.get("criteria_analysis", []):
             criteria_scores[c.get("criterion", "")] = c.get("score", 0)
+
+        # Extract actual hero/value proposition content for AI quality assessment
+        value_prop = self.scraped_data.get("value_proposition", {})
+        h1_text = value_prop.get("h1", "")
+        subheadline = value_prop.get("subheadline", "")
+        hero_text = value_prop.get("hero_text", "")
 
         # Build comprehensive prompt for high-value analysis
         prompt = f"""Du är en expert på konverteringsoptimering och lead generation. Analysera {self.company_name} ({self.industry_label}) och skriv en OMFATTANDE, VÄRDEFULL rapport på svenska.
@@ -392,6 +398,11 @@ class AIReportGenerator:
 FÖRETAGSDATA:
 - Bransch: {self.industry_label}
 - Beskrivning: {self.company_description[:500] if self.company_description else 'Ej tillgänglig'}
+
+HERO/VÄRDEERBJUDANDE (faktiskt innehåll att bedöma):
+- H1-rubrik: "{h1_text}"
+- Underrubrik: "{subheadline}"
+- Hero-text: "{hero_text[:300] if hero_text else 'Ej hittad'}"
 
 ANALYSDATA:
 - Övergripande betyg: {self.overall_score}/5
@@ -403,13 +414,19 @@ ANALYSDATA:
 - Mailto-länkar (läckande tratt): {self.mailto_count} st - {[m.get('email', '') for m in mailto_links[:5]]}
 - Öppna PDFs (läckande tratt): {self.ungated_pdf_count} st - {[p.get('url', '')[-50:] for p in ungated_pdfs[:5]]}
 
-BETYG PER KRITERIUM (1-5 stjärnor, dessa är EXAKTA och får EJ ändras):
-- Värdeerbjudande: {criteria_scores.get('value_proposition', 0)}/5
+STRUKTURELLA BETYG (baserade på om element finns - du ska JUSTERA dessa baserat på KVALITET):
+- Värdeerbjudande (struktur): {criteria_scores.get('value_proposition', 0)}/5
 - Lead Magnets: {criteria_scores.get('lead_magnets', 0)}/5
 - Formulärdesign: {criteria_scores.get('form_design', 0)}/5
 - Social Proof: {criteria_scores.get('social_proof', 0)}/5
 - CTA: {criteria_scores.get('call_to_action', 0)}/5
 - Vägledande innehåll: {criteria_scores.get('guiding_content', 0)}/5
+
+VIKTIGT OM BETYG:
+- De strukturella betygen ovan baseras ENDAST på om element existerar (t.ex. "finns H1? +poäng")
+- DU ska bedöma KVALITETEN på innehållet och justera betyget uppåt eller nedåt
+- Exempel: Om H1 finns men är generisk som "Välkommen" eller "Vi hjälper företag" - sänk värdeerbjudande till 2-3
+- Exempel: Om H1 är specifik och kommunicerar unikt värde - behåll högt betyg
 
 SKRIV EN DJUPGÅENDE ANALYS med följande sektioner (svenska, direkt och provocerande ton som en erfaren konsult):
 
@@ -423,15 +440,24 @@ Svara ENDAST med JSON:
 
   "cta_analysis": "1-2 stycken om deras CTAs. Är de svaga ('Kontakta oss') eller starka? Saknas mellansteg för kall trafik?",
 
-  "logical_verdict": "2-3 stycken HÅRD, KONKRET kritik i stil med: 'Ni begår det klassiska misstaget att...' Identifiera SPECIFIKA problem som: (1) onödig friktion i formulär (t.ex. dropdown för 'Roll' som inte ger säljaren info de inte redan kan hitta på LinkedIn), (2) 'dödsgränder' efter konvertering (t.ex. 'Tack! Din inlämning har mottagits!' utan nästa steg som kalenderbokning eller VSL), (3) 'leaky funnels' där värde ges bort utan att fånga leads. Nämn exakt vad du ser i deras kod/CTAs. Skriv provocerande men sakligt.",
+  "logical_verdict": "2-3 stycken HÅRD, KONKRET kritik i stil med: 'Ni begår det klassiska misstaget att...' Identifiera SPECIFIKA problem som: (1) onödig friktion i formulär, (2) 'dödsgränder' efter konvertering, (3) 'leaky funnels' där värde ges bort utan att fånga leads. Skriv provocerande men sakligt.",
+
+  "adjusted_scores": {{
+    "value_proposition": [1-5 baserat på KVALITETEN av H1/hero-text - är budskapet specifikt och övertygande eller generiskt?],
+    "lead_magnets": [1-5 justerat betyg],
+    "form_design": [1-5 justerat betyg],
+    "social_proof": [1-5 justerat betyg],
+    "call_to_action": [1-5 justerat betyg],
+    "guiding_content": [1-5 justerat betyg]
+  }},
 
   "criteria_explanations": {{
-    "value_proposition": "VIKTIGT: Betyget är {criteria_scores.get('value_proposition', 0)}/5. Skriv 1 mening som MOTIVERAR detta betyg - om det är lågt (1-2), förklara vad som är svagt. Om det är högt (4-5), förklara vad som fungerar.",
-    "lead_magnets": "Betyg: {criteria_scores.get('lead_magnets', 0)}/5. 1 mening som motiverar detta.",
-    "form_design": "Betyg: {criteria_scores.get('form_design', 0)}/5. 1 mening som motiverar detta.",
-    "social_proof": "Betyg: {criteria_scores.get('social_proof', 0)}/5. 1 mening som motiverar detta.",
-    "call_to_action": "Betyg: {criteria_scores.get('call_to_action', 0)}/5. 1 mening som motiverar detta.",
-    "guiding_content": "Betyg: {criteria_scores.get('guiding_content', 0)}/5. 1 mening som motiverar detta."
+    "value_proposition": "1 mening som motiverar ditt justerade betyg. Om H1 är generisk, säg det. Om den är specifik, berätta varför.",
+    "lead_magnets": "1 mening som motiverar betyget.",
+    "form_design": "1 mening som motiverar betyget.",
+    "social_proof": "1 mening som motiverar betyget.",
+    "call_to_action": "1 mening som motiverar betyget.",
+    "guiding_content": "1 mening som motiverar betyget."
   }},
 
   "summary_assessment": "3-4 stycken sammanfattande bedömning. Vad är företaget bra på? Var misslyckas de? Vad är den övergripande diagnosen? Skriv som en erfaren konsult som inte lindar in budskapet."

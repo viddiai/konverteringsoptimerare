@@ -66,6 +66,36 @@ def generate_ai_sync(report_id: int, scraped_data: dict, analysis: dict):
                     full_report["summary_assessment"] = enhanced_sections.get("summary_assessment", "")
                     full_report["criteria_explanations"] = enhanced_sections.get("criteria_explanations", {})
 
+                    # Apply AI-adjusted scores (quality-based, not just structural)
+                    adjusted_scores = enhanced_sections.get("adjusted_scores", {})
+                    if adjusted_scores and full_report.get("criteria_analysis"):
+                        criteria_analysis = list(full_report["criteria_analysis"])
+                        score_map = {
+                            "value_proposition": adjusted_scores.get("value_proposition"),
+                            "lead_magnets": adjusted_scores.get("lead_magnets"),
+                            "form_design": adjusted_scores.get("form_design"),
+                            "social_proof": adjusted_scores.get("social_proof"),
+                            "call_to_action": adjusted_scores.get("call_to_action"),
+                            "guiding_content": adjusted_scores.get("guiding_content"),
+                        }
+                        for i, criterion in enumerate(criteria_analysis):
+                            key = criterion.get("criterion")
+                            if key in score_map and score_map[key] is not None:
+                                try:
+                                    new_score = int(score_map[key])
+                                    new_score = max(1, min(5, new_score))  # Clamp 1-5
+                                    criteria_analysis[i] = dict(criterion)
+                                    criteria_analysis[i]["score"] = new_score
+                                except (ValueError, TypeError):
+                                    pass  # Keep original score if AI returned invalid
+                        full_report["criteria_analysis"] = criteria_analysis
+                        # Recalculate overall score
+                        total = sum(c["score"] for c in criteria_analysis)
+                        new_overall = round(total / len(criteria_analysis), 1)
+                        full_report["overall_score"] = new_overall
+                        report.overall_score = new_overall  # Update Report model too
+                        print(f"📊 Applied AI-adjusted scores for report {report_id}: overall {new_overall}/5")
+
                     # Legacy fields (backward compatibility)
                     full_report["final_hook"] = enhanced_sections.get("final_hook", "")
                     full_report["detailed_lead_magnets"] = enhanced_sections.get("detailed_lead_magnets", "")
