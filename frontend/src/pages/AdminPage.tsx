@@ -1,0 +1,331 @@
+import { useQuery } from '@tanstack/react-query'
+import { getLeads, getReports, getDashboardStats } from '../utils/api'
+import {
+  Users,
+  FileText,
+  TrendingUp,
+  Calendar,
+  ExternalLink,
+  Star,
+  AlertTriangle,
+  Download,
+} from 'lucide-react'
+import clsx from 'clsx'
+
+export default function AdminPage() {
+  const statsQuery = useQuery({
+    queryKey: ['admin-stats'],
+    queryFn: getDashboardStats,
+  })
+
+  const leadsQuery = useQuery({
+    queryKey: ['admin-leads'],
+    queryFn: () => getLeads(0, 20),
+  })
+
+  const reportsQuery = useQuery({
+    queryKey: ['admin-reports'],
+    queryFn: () => getReports(0, 20),
+  })
+
+  const stats = statsQuery.data
+  const leads = leadsQuery.data || []
+  const reports = reportsQuery.data || []
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('sv-SE', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  return (
+    <div className="min-h-screen bg-black">
+      {/* Header */}
+      <header className="bg-white/5 border-b border-white/10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold text-white">
+              Admin Dashboard
+            </h1>
+            <a
+              href="/"
+              className="text-primary-500 hover:text-primary-400 text-sm transition-colors"
+            >
+              ← Tillbaka till startsidan
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <StatCard
+            title="Totala Leads"
+            value={stats?.total_leads ?? '-'}
+            icon={<Users size={24} />}
+            color="blue"
+          />
+          <StatCard
+            title="Totala Rapporter"
+            value={stats?.total_reports ?? '-'}
+            icon={<FileText size={24} />}
+            color="green"
+          />
+          <StatCard
+            title="Leads Idag"
+            value={stats?.leads_today ?? '-'}
+            icon={<Calendar size={24} />}
+            color="purple"
+          />
+          <StatCard
+            title="Snittbetyg"
+            value={stats?.average_score ? `${stats.average_score}/5` : '-'}
+            icon={<TrendingUp size={24} />}
+            color="orange"
+          />
+        </div>
+
+        {/* Top Issues */}
+        {stats?.top_issues && stats.top_issues.length > 0 && (
+          <div className="card mb-8">
+            <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <AlertTriangle className="text-orange-400" size={20} />
+              Vanligaste Problemen
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {stats.top_issues.map((issue) => (
+                <span
+                  key={issue.criterion}
+                  className="px-3 py-1 bg-orange-500/20 text-orange-300 rounded-full text-sm"
+                >
+                  {issue.criterion}: {issue.count} st
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Two Column Layout */}
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Leads Table */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Senaste Leads
+            </h2>
+            {leadsQuery.isLoading ? (
+              <p className="text-gray-500">Laddar...</p>
+            ) : leads.length === 0 ? (
+              <p className="text-gray-500">Inga leads ännu</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        Namn
+                      </th>
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        E-post
+                      </th>
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        Datum
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {leads.map((lead) => (
+                      <tr
+                        key={lead.id}
+                        className="border-b border-white/10 hover:bg-white/5"
+                      >
+                        <td className="py-3 text-white">
+                          {lead.name}
+                          {lead.company_name && (
+                            <span className="text-gray-500 text-xs block">
+                              {lead.company_name}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 text-gray-400">
+                          <a
+                            href={`mailto:${lead.email}`}
+                            className="hover:text-primary-500 transition-colors"
+                          >
+                            {lead.email}
+                          </a>
+                        </td>
+                        <td className="py-3 text-gray-500 text-xs">
+                          {formatDate(lead.created_at)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Reports Table */}
+          <div className="card">
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Senaste Rapporter
+            </h2>
+            {reportsQuery.isLoading ? (
+              <p className="text-gray-500">Laddar...</p>
+            ) : reports.length === 0 ? (
+              <p className="text-gray-500">Inga rapporter ännu</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        URL
+                      </th>
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        Betyg
+                      </th>
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        Lead
+                      </th>
+                      <th className="text-left py-2 font-medium text-gray-400">
+                        PDF
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reports.map((report) => (
+                      <tr
+                        key={report.id}
+                        className="border-b border-white/10 hover:bg-white/5"
+                      >
+                        <td className="py-3">
+                          <a
+                            href={report.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary-500 hover:text-primary-400 flex items-center gap-1 transition-colors"
+                          >
+                            {new URL(report.url).hostname.replace('www.', '')}
+                            <ExternalLink size={12} />
+                          </a>
+                          {report.company_name_detected && (
+                            <span className="text-gray-500 text-xs block">
+                              {report.company_name_detected}
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          {report.overall_score !== null ? (
+                            <span className="flex items-center gap-1 text-white">
+                              <Star
+                                size={14}
+                                className="text-primary-500 fill-primary-500"
+                              />
+                              {report.overall_score}/5
+                            </span>
+                          ) : (
+                            <span className="text-gray-500">-</span>
+                          )}
+                        </td>
+                        <td className="py-3 text-gray-400 text-xs">
+                          {report.lead_email || (
+                            <span className="text-gray-600">Ej konverterad</span>
+                          )}
+                        </td>
+                        <td className="py-3">
+                          {report.access_token ? (
+                            <a
+                              href={`/api/report/${report.id}/pdf?token=${report.access_token}`}
+                              className="inline-flex items-center gap-1 px-2 py-1 bg-white/10 text-gray-300 rounded hover:bg-white/20 transition-colors"
+                              title="Ladda ner PDF"
+                            >
+                              <Download size={14} />
+                            </a>
+                          ) : (
+                            <span className="text-gray-600">
+                              <Download size={14} />
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Widget Embed Code */}
+        <div className="card mt-8">
+          <h2 className="text-lg font-semibold text-white mb-4">
+            Inbäddningskod för Widget
+          </h2>
+          <p className="text-gray-400 text-sm mb-4">
+            Kopiera och klistra in denna kod på din webbsida för att visa analyswidgeten.
+          </p>
+          <div className="bg-black/50 border border-white/10 rounded-lg p-4 overflow-x-auto">
+            <pre className="text-primary-400 text-sm">
+{`<!-- Conversion Analyzer Widget -->
+<div id="conversion-analyzer-widget"></div>
+<script>
+  window.CAWidgetConfig = {
+    theme: 'dark',  // 'light' or 'dark'
+    primaryColor: '#10b981'
+  };
+</script>
+<script src="${window.location.origin}/api/widget.js"></script>`}
+            </pre>
+          </div>
+          <p className="text-gray-500 text-xs mt-2">
+            Eller använd iframe:{' '}
+            <code className="bg-white/10 px-1 rounded text-gray-300">
+              {`<iframe src="${window.location.origin}/widget/embed" width="500" height="400"></iframe>`}
+            </code>
+          </p>
+        </div>
+      </main>
+    </div>
+  )
+}
+
+function StatCard({
+  title,
+  value,
+  icon,
+  color,
+}: {
+  title: string
+  value: string | number
+  icon: React.ReactNode
+  color: 'blue' | 'green' | 'purple' | 'orange'
+}) {
+  const colorClasses = {
+    blue: 'bg-blue-500/20 text-blue-400',
+    green: 'bg-primary-500/20 text-primary-500',
+    purple: 'bg-purple-500/20 text-purple-400',
+    orange: 'bg-orange-500/20 text-orange-400',
+  }
+
+  return (
+    <div className="card">
+      <div className="flex items-center gap-4">
+        <div className={clsx('p-3 rounded-lg', colorClasses[color])}>
+          {icon}
+        </div>
+        <div>
+          <p className="text-sm text-gray-400">{title}</p>
+          <p className="text-2xl font-bold text-white">
+            {value}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
