@@ -392,79 +392,37 @@ class AIReportGenerator:
         subheadline = value_prop.get("subheadline", "")
         hero_text = value_prop.get("hero_text", "")
 
-        # Build comprehensive prompt for high-value analysis
-        prompt = f"""Du är en expert på konverteringsoptimering och lead generation. Analysera {self.company_name} ({self.industry_label}) och skriv en OMFATTANDE, VÄRDEFULL rapport på svenska.
+        # Build optimized prompt for fast AI analysis
+        prompt = f"""Analysera {self.company_name} ({self.industry_label}) för lead generation. Svenska, direkt ton.
 
-FÖRETAGSDATA:
-- Bransch: {self.industry_label}
-- Beskrivning: {self.company_description[:500] if self.company_description else 'Ej tillgänglig'}
+DATA:
+- H1: "{h1_text[:100]}"
+- Subheadline: "{subheadline[:100]}"
+- Lead magnets: {len(lead_magnets)} st
+- Formulär: {len(forms)} st
+- CTAs: {[cta.get('text', '')[:30] for cta in cta_buttons[:5]]}
+- Social proof: {len(social_proof)} st
+- Mailto-länkar: {self.mailto_count} st
+- Öppna PDFs: {self.ungated_pdf_count} st
+- Problem: {self.logical_errors[:3]}
 
-HERO/VÄRDEERBJUDANDE (faktiskt innehåll att bedöma):
-- H1-rubrik: "{h1_text}"
-- Underrubrik: "{subheadline}"
-- Hero-text: "{hero_text[:300] if hero_text else 'Ej hittad'}"
+BETYG att justera (1-5, baserat på kvalitet):
+VP:{criteria_scores.get('value_proposition', 0)} LM:{criteria_scores.get('lead_magnets', 0)} Form:{criteria_scores.get('form_design', 0)} SP:{criteria_scores.get('social_proof', 0)} CTA:{criteria_scores.get('call_to_action', 0)} Guide:{criteria_scores.get('guiding_content', 0)}
 
-ANALYSDATA:
-- Övergripande betyg: {self.overall_score}/5
-- Identifierade problem: {self.logical_errors}
-- Lead magnets: {len(lead_magnets)} st - {[lm.get('text', '')[:50] for lm in lead_magnets[:5]]}
-- Formulär ({len(forms)} st): {form_details}
-- CTA-knappar: {[cta.get('text', '') for cta in cta_buttons[:10]]}
-- Social proof: {len(social_proof)} st - {[sp.get('text', '')[:80] for sp in social_proof[:5]]}
-- Mailto-länkar (läckande tratt): {self.mailto_count} st - {[m.get('email', '') for m in mailto_links[:5]]}
-- Öppna PDFs (läckande tratt): {self.ungated_pdf_count} st - {[p.get('url', '')[-50:] for p in ungated_pdfs[:5]]}
-
-STRUKTURELLA BETYG (baserade på om element finns - du ska JUSTERA dessa baserat på KVALITET):
-- Värdeerbjudande (struktur): {criteria_scores.get('value_proposition', 0)}/5
-- Lead Magnets: {criteria_scores.get('lead_magnets', 0)}/5
-- Formulärdesign: {criteria_scores.get('form_design', 0)}/5
-- Social Proof: {criteria_scores.get('social_proof', 0)}/5
-- CTA: {criteria_scores.get('call_to_action', 0)}/5
-- Vägledande innehåll: {criteria_scores.get('guiding_content', 0)}/5
-
-VIKTIGT OM BETYG:
-- De strukturella betygen ovan baseras ENDAST på om element existerar (t.ex. "finns H1? +poäng")
-- DU ska bedöma KVALITETEN på innehållet och justera betyget uppåt eller nedåt
-- Exempel: Om H1 finns men är generisk som "Välkommen" eller "Vi hjälper företag" - sänk värdeerbjudande till 2-3
-- Exempel: Om H1 är specifik och kommunicerar unikt värde - behåll högt betyg
-
-SKRIV EN DJUPGÅENDE ANALYS med följande sektioner (svenska, direkt och provocerande ton som en erfaren konsult):
-
-Svara ENDAST med JSON:
+Svara ENDAST JSON:
 {{
-  "short_description": "3-4 meningar som positionerar företaget och identifierar kärnproblemet med deras lead generation. Var specifik om vad de gör och vad som saknas.",
-
-  "lead_magnets_analysis": "2-3 stycken om deras lead magnets/erbjudanden. Nämn specifika exempel. Vad är bra? Vad saknas? Är de relevanta för målgruppen?",
-
-  "forms_analysis": "2 stycken om formulärdesign. Hur många fält? Onödig friktion? Prioriterar de CRM framför användarupplevelse?",
-
-  "cta_analysis": "1-2 stycken om deras CTAs. Är de svaga ('Kontakta oss') eller starka? Saknas mellansteg för kall trafik?",
-
-  "logical_verdict": "2-3 stycken HÅRD, KONKRET kritik i stil med: 'Ni begår det klassiska misstaget att...' Identifiera SPECIFIKA problem som: (1) onödig friktion i formulär, (2) 'dödsgränder' efter konvertering, (3) 'leaky funnels' där värde ges bort utan att fånga leads. Skriv provocerande men sakligt.",
-
-  "adjusted_scores": {{
-    "value_proposition": [1-5 baserat på KVALITETEN av H1/hero-text - är budskapet specifikt och övertygande eller generiskt?],
-    "lead_magnets": [1-5 justerat betyg],
-    "form_design": [1-5 justerat betyg],
-    "social_proof": [1-5 justerat betyg],
-    "call_to_action": [1-5 justerat betyg],
-    "guiding_content": [1-5 justerat betyg]
-  }},
-
-  "criteria_explanations": {{
-    "value_proposition": "1 mening som motiverar ditt justerade betyg. Om H1 är generisk, säg det. Om den är specifik, berätta varför.",
-    "lead_magnets": "1 mening som motiverar betyget.",
-    "form_design": "1 mening som motiverar betyget.",
-    "social_proof": "1 mening som motiverar betyget.",
-    "call_to_action": "1 mening som motiverar betyget.",
-    "guiding_content": "1 mening som motiverar betyget."
-  }},
-
-  "summary_assessment": "3-4 stycken sammanfattande bedömning. Vad är företaget bra på? Var misslyckas de? Vad är den övergripande diagnosen? Skriv som en erfaren konsult som inte lindar in budskapet."
+  "short_description": "2-3 meningar om företaget och huvudproblemet.",
+  "lead_magnets_analysis": "1 stycke om lead magnets.",
+  "forms_analysis": "1 stycke om formulär.",
+  "cta_analysis": "1 stycke om CTAs.",
+  "logical_verdict": "2 stycken hård kritik: 'Ni begår misstaget att...'",
+  "adjusted_scores": {{"value_proposition": 3, "lead_magnets": 2, "form_design": 3, "social_proof": 2, "call_to_action": 3, "guiding_content": 2}},
+  "criteria_explanations": {{"value_proposition": "1 mening", "lead_magnets": "1 mening", "form_design": "1 mening", "social_proof": "1 mening", "call_to_action": "1 mening", "guiding_content": "1 mening"}},
+  "summary_assessment": "2-3 korta punkter om styrkor och svagheter."
 }}"""
 
         try:
-            result = await self._call_claude(prompt, max_tokens=3000)
+            result = await self._call_claude(prompt, max_tokens=1500)
 
             if result:
                 # Try to parse JSON directly
