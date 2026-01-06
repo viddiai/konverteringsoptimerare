@@ -130,6 +130,9 @@ REPORT_PAGE_TEMPLATE = '''
     </div>
 
     <script>
+        let pollCount = 0;
+        const MAX_POLLS = 30; // Max 30 attempts (60 seconds)
+
         async function loadReport() {
             const pathParts = window.location.pathname.split('/');
             const reportId = pathParts[pathParts.length - 1];
@@ -150,8 +153,36 @@ REPORT_PAGE_TEMPLATE = '''
 
                 const data = await response.json();
                 renderReport(data);
+
+                // If AI analysis is not complete, poll for updates
+                if (!data.ai_generated && pollCount < MAX_POLLS) {
+                    pollCount++;
+                    setTimeout(() => {
+                        refreshReport(reportId, token);
+                    }, 2000); // Poll every 2 seconds
+                }
             } catch (err) {
                 showError('Något gick fel: ' + err.message);
+            }
+        }
+
+        async function refreshReport(reportId, token) {
+            try {
+                const response = await fetch('/api/report/' + reportId + '?token=' + token);
+                if (response.ok) {
+                    const data = await response.json();
+                    renderReport(data);
+
+                    // Continue polling if AI not complete
+                    if (!data.ai_generated && pollCount < MAX_POLLS) {
+                        pollCount++;
+                        setTimeout(() => {
+                            refreshReport(reportId, token);
+                        }, 2000);
+                    }
+                }
+            } catch (err) {
+                console.error('Error refreshing report:', err);
             }
         }
 
@@ -224,7 +255,7 @@ REPORT_PAGE_TEMPLATE = '''
                     <section class="mb-8">
                         <h2 class="text-lg font-semibold text-white mb-3">Avgörande insikter:</h2>
                         <div class="text-gray-300 leading-relaxed whitespace-pre-line">
-                            ${data.logical_verdict || 'Ingen detaljerad analys tillgänglig.'}
+                            ${data.logical_verdict ? data.logical_verdict : (data.ai_generated ? 'Ingen detaljerad analys tillgänglig.' : '<div class="flex items-center gap-2 text-gray-400"><svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Genererar AI-analys...</div>')}
                         </div>
                     </section>
 

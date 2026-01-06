@@ -48,6 +48,9 @@ def generate_ai_sync(report_id: int, scraped_data: dict, analysis: dict):
             print(f"📝 Calling Claude API for report {report_id}...")
             enhanced_sections = await generate_enhanced_report(scraped_data, analysis)
             print(f"📝 Claude API returned for report {report_id}")
+            print(f"📋 AI sections received: {list(enhanced_sections.keys())}")
+            logical_verdict_preview = (enhanced_sections.get("logical_verdict", "") or "")[:100]
+            print(f"📋 logical_verdict preview: '{logical_verdict_preview}...'")
 
             # Update report in database
             db = SessionLocal()
@@ -378,6 +381,7 @@ async def get_full_report(
         ],
         summary_assessment=full_data.get("summary_assessment", ""),
         recommendations=full_data.get("recommendations", []),
+        ai_generated=full_data.get("ai_generated", False),
         created_at=report.created_at,
     )
 

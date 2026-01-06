@@ -95,6 +95,9 @@ class FullReportResponse(BaseModel):
     summary_assessment: str  # Comprehensive assessment
     recommendations: List[str]  # 5 concrete recommendations
 
+    # AI generation status
+    ai_generated: bool = False  # True when AI analysis is complete
+
     created_at: datetime
 
 
