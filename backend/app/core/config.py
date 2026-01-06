@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
+    PUBLIC_URL: Optional[str] = None  # Public URL for widget (e.g., https://example.railway.app)
 
     # Database
     DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/conversion_analyzer"

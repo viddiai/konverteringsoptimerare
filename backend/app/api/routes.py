@@ -695,8 +695,11 @@ async def get_widget_js():
     """
     Return the embeddable widget JavaScript.
     """
-    # Replace API URL placeholder
-    api_url = f"http://{settings.HOST}:{settings.PORT}/api"
+    # Replace API URL placeholder - use PUBLIC_URL if set, otherwise fallback to HOST:PORT
+    if settings.PUBLIC_URL:
+        api_url = f"{settings.PUBLIC_URL.rstrip('/')}/api"
+    else:
+        api_url = f"http://{settings.HOST}:{settings.PORT}/api"
     js_content = WIDGET_JS_TEMPLATE.replace('%API_URL%', api_url)
 
     return Response(
