@@ -381,6 +381,11 @@ class AIReportGenerator:
                 'fields': field_names
             })
 
+        # Extract criteria scores from analysis
+        criteria_scores = {}
+        for c in self.analysis.get("criteria_analysis", []):
+            criteria_scores[c.get("criterion", "")] = c.get("score", 0)
+
         # Build comprehensive prompt for high-value analysis
         prompt = f"""Du är en expert på konverteringsoptimering och lead generation. Analysera {self.company_name} ({self.industry_label}) och skriv en OMFATTANDE, VÄRDEFULL rapport på svenska.
 
@@ -398,6 +403,14 @@ ANALYSDATA:
 - Mailto-länkar (läckande tratt): {self.mailto_count} st - {[m.get('email', '') for m in mailto_links[:5]]}
 - Öppna PDFs (läckande tratt): {self.ungated_pdf_count} st - {[p.get('url', '')[-50:] for p in ungated_pdfs[:5]]}
 
+BETYG PER KRITERIUM (1-5 stjärnor, dessa är EXAKTA och får EJ ändras):
+- Värdeerbjudande: {criteria_scores.get('value_proposition', 0)}/5
+- Lead Magnets: {criteria_scores.get('lead_magnets', 0)}/5
+- Formulärdesign: {criteria_scores.get('form_design', 0)}/5
+- Social Proof: {criteria_scores.get('social_proof', 0)}/5
+- CTA: {criteria_scores.get('call_to_action', 0)}/5
+- Vägledande innehåll: {criteria_scores.get('guiding_content', 0)}/5
+
 SKRIV EN DJUPGÅENDE ANALYS med följande sektioner (svenska, direkt och provocerande ton som en erfaren konsult):
 
 Svara ENDAST med JSON:
@@ -413,12 +426,12 @@ Svara ENDAST med JSON:
   "logical_verdict": "2-3 stycken HÅRD, KONKRET kritik i stil med: 'Ni begår det klassiska misstaget att...' Identifiera SPECIFIKA problem som: (1) onödig friktion i formulär (t.ex. dropdown för 'Roll' som inte ger säljaren info de inte redan kan hitta på LinkedIn), (2) 'dödsgränder' efter konvertering (t.ex. 'Tack! Din inlämning har mottagits!' utan nästa steg som kalenderbokning eller VSL), (3) 'leaky funnels' där värde ges bort utan att fånga leads. Nämn exakt vad du ser i deras kod/CTAs. Skriv provocerande men sakligt.",
 
   "criteria_explanations": {{
-    "value_proposition": "1 mening förklaring av betyget - var specifik om vad som fungerar/saknas",
-    "lead_magnets": "1 mening förklaring",
-    "form_design": "1 mening förklaring",
-    "social_proof": "1 mening förklaring",
-    "call_to_action": "1 mening förklaring",
-    "guiding_content": "1 mening förklaring"
+    "value_proposition": "VIKTIGT: Betyget är {criteria_scores.get('value_proposition', 0)}/5. Skriv 1 mening som MOTIVERAR detta betyg - om det är lågt (1-2), förklara vad som är svagt. Om det är högt (4-5), förklara vad som fungerar.",
+    "lead_magnets": "Betyg: {criteria_scores.get('lead_magnets', 0)}/5. 1 mening som motiverar detta.",
+    "form_design": "Betyg: {criteria_scores.get('form_design', 0)}/5. 1 mening som motiverar detta.",
+    "social_proof": "Betyg: {criteria_scores.get('social_proof', 0)}/5. 1 mening som motiverar detta.",
+    "call_to_action": "Betyg: {criteria_scores.get('call_to_action', 0)}/5. 1 mening som motiverar detta.",
+    "guiding_content": "Betyg: {criteria_scores.get('guiding_content', 0)}/5. 1 mening som motiverar detta."
   }},
 
   "summary_assessment": "3-4 stycken sammanfattande bedömning. Vad är företaget bra på? Var misslyckas de? Vad är den övergripande diagnosen? Skriv som en erfaren konsult som inte lindar in budskapet."
