@@ -146,6 +146,17 @@ REPORT_PAGE_TEMPLATE = '''
         let pollCount = 0;
         const MAX_POLLS = 30; // Max 30 attempts (60 seconds)
 
+        // Helper to safely escape HTML in strings
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
         async function loadReport() {
             const pathParts = window.location.pathname.split('/');
             const reportId = pathParts[pathParts.length - 1];
@@ -165,7 +176,13 @@ REPORT_PAGE_TEMPLATE = '''
                 }
 
                 const data = await response.json();
-                renderReport(data);
+                console.log('Report data loaded:', data);
+                try {
+                    renderReport(data);
+                } catch (renderErr) {
+                    console.error('Render error:', renderErr);
+                    showError('Kunde inte rendera rapporten: ' + renderErr.message);
+                }
 
                 // If AI analysis is not complete, poll for updates
                 if (!data.ai_generated && pollCount < MAX_POLLS) {
@@ -226,17 +243,17 @@ REPORT_PAGE_TEMPLATE = '''
                 <div class="fade-in">
                     <header class="mb-8">
                         <h1 class="text-2xl font-bold text-white mb-2">
-                            Analys av leadgenerering och konverteringsoptimering för ${data.company_name || 'Er Webbsida'}
+                            Analys av leadgenerering och konverteringsoptimering för ${escapeHtml(data.company_name) || 'Er Webbsida'}
                         </h1>
-                        ${data.industry_label ? `<p class="text-primary-500 text-sm font-medium mb-2">Bransch: ${data.industry_label}</p>` : ''}
+                        ${data.industry_label ? `<p class="text-primary-500 text-sm font-medium mb-2">Bransch: ${escapeHtml(data.industry_label)}</p>` : ''}
                         <p class="text-gray-500 text-sm">Analyserad: ${new Date(data.created_at).toLocaleDateString('sv-SE')}</p>
-                        <p class="text-gray-500 text-sm">URL: <a href="${data.url}" target="_blank" class="text-primary-500 hover:text-primary-400 transition-colors">${data.url}</a></p>
+                        <p class="text-gray-500 text-sm">URL: <a href="${escapeHtml(data.url)}" target="_blank" class="text-primary-500 hover:text-primary-400 transition-colors">${escapeHtml(data.url)}</a></p>
                     </header>
 
                     <!-- Kort beskrivning -->
                     <section class="mb-8">
                         <h2 class="text-lg font-semibold text-white mb-3">Kort beskrivning:</h2>
-                        <p class="text-gray-300 leading-relaxed">${data.short_description || data.company_description || 'Ingen beskrivning tillgänglig.'}</p>
+                        <p class="text-gray-300 leading-relaxed">${escapeHtml(data.short_description || data.company_description) || 'Ingen beskrivning tillgänglig.'}</p>
                     </section>
 
                     <!-- Resultat: Leadmagneter, formulär och innehåll -->
@@ -244,23 +261,23 @@ REPORT_PAGE_TEMPLATE = '''
                         <h2 class="text-lg font-semibold text-white mb-4">Resultat: Leadmagneter, nyhetsbrev, värdeskapande innehåll och formulär</h2>
 
                         ${data.lead_magnets_analysis ? `
-                        <div class="text-gray-300 leading-relaxed mb-4">${data.lead_magnets_analysis}</div>
+                        <div class="text-gray-300 leading-relaxed mb-4">${escapeHtml(data.lead_magnets_analysis)}</div>
                         ` : `
-                        <p class="text-gray-300 mb-4">${data.company_name || 'Webbplatsen'} har ${data.lead_magnets?.length || 0} identifierade leadmagneter.</p>
+                        <p class="text-gray-300 mb-4">${escapeHtml(data.company_name) || 'Webbplatsen'} har ${data.lead_magnets?.length || 0} identifierade leadmagneter.</p>
                         `}
 
                         <ul class="space-y-2 mb-4 text-gray-300">
-                            <li><strong class="text-white">Leadmagneter:</strong> ${data.lead_magnets?.length || 0} identifierade. ${data.lead_magnets?.slice(0, 3).map(lm => lm.text || '').join(', ') || 'Inga specifika hittades.'}</li>
+                            <li><strong class="text-white">Leadmagneter:</strong> ${data.lead_magnets?.length || 0} identifierade. ${escapeHtml((data.lead_magnets || []).slice(0, 3).map(lm => lm.text || '').join(', ')) || 'Inga specifika hittades.'}</li>
                             <li><strong class="text-white">Formulär:</strong> ${data.forms?.length || 0} st identifierade.</li>
-                            <li><strong class="text-white">CTA:</strong> ${data.cta_buttons?.slice(0, 5).map(c => '"' + c.text + '"').join(', ') || 'Inga tydliga CTAs hittades.'}</li>
+                            <li><strong class="text-white">CTA:</strong> ${escapeHtml((data.cta_buttons || []).slice(0, 5).map(c => '"' + (c.text || '') + '"').join(', ')) || 'Inga tydliga CTAs hittades.'}</li>
                         </ul>
 
                         ${data.forms_analysis ? `
-                        <div class="text-gray-300 leading-relaxed mb-4">${data.forms_analysis}</div>
+                        <div class="text-gray-300 leading-relaxed mb-4">${escapeHtml(data.forms_analysis)}</div>
                         ` : ''}
 
                         ${data.cta_analysis ? `
-                        <div class="text-gray-300 leading-relaxed">${data.cta_analysis}</div>
+                        <div class="text-gray-300 leading-relaxed">${escapeHtml(data.cta_analysis)}</div>
                         ` : ''}
                     </section>
 
@@ -268,7 +285,7 @@ REPORT_PAGE_TEMPLATE = '''
                     <section class="mb-8">
                         <h2 class="text-lg font-semibold text-white mb-3">Avgörande insikter:</h2>
                         <div class="text-gray-300 leading-relaxed whitespace-pre-line">
-                            ${data.logical_verdict ? data.logical_verdict : (data.ai_generated ? 'Ingen detaljerad analys tillgänglig.' : '<div class="flex items-center gap-2 text-gray-400"><svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Genererar AI-analys...</div>')}
+                            ${data.logical_verdict ? escapeHtml(data.logical_verdict) : (data.ai_generated ? 'Ingen detaljerad analys tillgänglig.' : '<div class="flex items-center gap-2 text-gray-400"><svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Genererar AI-analys...</div>')}
                         </div>
                     </section>
 
@@ -291,9 +308,9 @@ REPORT_PAGE_TEMPLATE = '''
                                         const aiExplanation = criteriaExplanations[criterionKey] || criteriaExplanations[c.criterion] || c.explanation;
                                         return `
                                         <tr class="border-b border-white/10 hover:bg-white/5">
-                                            <td class="py-3 px-4 font-medium text-white">${c.criterion_label}</td>
+                                            <td class="py-3 px-4 font-medium text-white">${escapeHtml(c.criterion_label)}</td>
                                             <td class="py-3 px-4">${stars(c.score)}</td>
-                                            <td class="py-3 px-4 text-gray-400">${aiExplanation}</td>
+                                            <td class="py-3 px-4 text-gray-400">${escapeHtml(aiExplanation)}</td>
                                         </tr>
                                         `;
                                     }).join('')}
@@ -310,7 +327,7 @@ REPORT_PAGE_TEMPLATE = '''
                                 ${(data.summary_assessment || 'Ingen sammanfattning tillgänglig.').split(/\n\n|\n/).filter(line => line.trim()).map(line => `
                                 <div class="flex items-start gap-3">
                                     <div class="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
-                                    <span class="text-gray-300 leading-relaxed">${line.trim()}</span>
+                                    <span class="text-gray-300 leading-relaxed">${escapeHtml(line.trim())}</span>
                                 </div>
                                 `).join('')}
                             </div>
@@ -324,7 +341,7 @@ REPORT_PAGE_TEMPLATE = '''
                             ${(data.recommendations || []).map((r, i) => `
                             <li class="flex gap-3">
                                 <span class="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${i + 1}</span>
-                                <span class="text-gray-300">${r}</span>
+                                <span class="text-gray-300">${escapeHtml(r)}</span>
                             </li>
                             `).join('')}
                         </ol>
