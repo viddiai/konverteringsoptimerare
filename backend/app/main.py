@@ -38,15 +38,28 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Configure CORS
-origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",")]
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Configure CORS - allow all origins for widget embedding
+# In production, CORS_ORIGINS can be set to "*" or specific domains
+cors_origins = settings.CORS_ORIGINS.strip()
+if cors_origins == "*":
+    # Allow all origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,  # Must be False when using wildcard
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    # Specific origins
+    origins = [origin.strip() for origin in cors_origins.split(",")]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # Include API routes
 app.include_router(router, prefix="/api", tags=["api"])
