@@ -272,7 +272,7 @@ REPORT_PAGE_TEMPLATE = '''
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${data.criteria_analysis.map(c => {
+                                    ${(data.criteria_analysis || []).map(c => {
                                         // Use AI explanation if available, otherwise use default
                                         const criterionKey = c.criterion.toLowerCase().replace(/_/g, '_');
                                         const aiExplanation = criteriaExplanations[criterionKey] || criteriaExplanations[c.criterion] || c.explanation;
@@ -308,7 +308,7 @@ REPORT_PAGE_TEMPLATE = '''
                     <section class="bg-primary-500/10 rounded-xl p-6 mb-6 border border-primary-500/20">
                         <h2 class="text-xl font-semibold text-primary-400 mb-4">Rekommendationer</h2>
                         <ol class="space-y-4">
-                            ${data.recommendations.map((r, i) => `
+                            ${(data.recommendations || []).map((r, i) => `
                             <li class="flex gap-3">
                                 <span class="flex-shrink-0 w-6 h-6 bg-primary-500 text-white rounded-full flex items-center justify-center text-sm font-bold">${i + 1}</span>
                                 <span class="text-gray-300">${r}</span>
