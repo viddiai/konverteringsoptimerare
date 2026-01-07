@@ -342,6 +342,12 @@ async def get_full_report(
     full_data = report.full_report or {}
     scraped = full_data.get("scraped_data", {})
 
+    # Helper to convert lists to strings (AI sometimes returns lists instead of strings)
+    def ensure_string(value):
+        if isinstance(value, list):
+            return "\n\n".join(str(item) for item in value)
+        return value if value else None
+
     # Safely build criteria_analysis with validation
     criteria_list = []
     for c in full_data.get("criteria_analysis", []):
@@ -373,20 +379,20 @@ async def get_full_report(
             # Industry detection
             detected_industry=full_data.get("detected_industry"),
             industry_label=full_data.get("industry_label"),
-            # AI-generated text sections (comprehensive)
-            short_description=full_data.get("short_description"),
-            logical_verdict=full_data.get("logical_verdict"),
-            final_hook=full_data.get("final_hook"),
+            # AI-generated text sections (comprehensive) - ensure strings
+            short_description=ensure_string(full_data.get("short_description")),
+            logical_verdict=ensure_string(full_data.get("logical_verdict")),
+            final_hook=ensure_string(full_data.get("final_hook")),
             # New comprehensive analysis sections
-            lead_magnets_analysis=full_data.get("lead_magnets_analysis"),
-            forms_analysis=full_data.get("forms_analysis"),
-            cta_analysis=full_data.get("cta_analysis"),
+            lead_magnets_analysis=ensure_string(full_data.get("lead_magnets_analysis")),
+            forms_analysis=ensure_string(full_data.get("forms_analysis")),
+            cta_analysis=ensure_string(full_data.get("cta_analysis")),
             # Legacy detailed category analysis (backward compatibility)
-            detailed_lead_magnets=full_data.get("detailed_lead_magnets"),
-            detailed_forms=full_data.get("detailed_forms"),
-            detailed_social_proof=full_data.get("detailed_social_proof"),
-            detailed_mailto=full_data.get("detailed_mailto"),
-            detailed_ungated_pdfs=full_data.get("detailed_ungated_pdfs"),
+            detailed_lead_magnets=ensure_string(full_data.get("detailed_lead_magnets")),
+            detailed_forms=ensure_string(full_data.get("detailed_forms")),
+            detailed_social_proof=ensure_string(full_data.get("detailed_social_proof")),
+            detailed_mailto=ensure_string(full_data.get("detailed_mailto")),
+            detailed_ungated_pdfs=ensure_string(full_data.get("detailed_ungated_pdfs")),
             # AI-generated criteria explanations
             criteria_explanations=full_data.get("criteria_explanations"),
             # Raw detected elements
@@ -398,7 +404,7 @@ async def get_full_report(
             ungated_pdfs=scraped.get("ungated_pdfs", []),
             # Analysis scores
             criteria_analysis=criteria_list,
-            summary_assessment=full_data.get("summary_assessment", ""),
+            summary_assessment=ensure_string(full_data.get("summary_assessment")) or "",
             recommendations=full_data.get("recommendations", []),
             ai_generated=full_data.get("ai_generated", False),
             created_at=report.created_at,
