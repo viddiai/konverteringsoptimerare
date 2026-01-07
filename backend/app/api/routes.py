@@ -342,48 +342,72 @@ async def get_full_report(
     full_data = report.full_report or {}
     scraped = full_data.get("scraped_data", {})
 
-    return FullReportResponse(
-        report_id=report.id,
-        url=report.url,
-        company_name=report.company_name_detected,
-        company_description=report.company_description,
-        overall_score=float(report.overall_score) if report.overall_score else 0.0,
-        issues_count=report.issues_found,
-        # Industry detection
-        detected_industry=full_data.get("detected_industry"),
-        industry_label=full_data.get("industry_label"),
-        # AI-generated text sections (comprehensive)
-        short_description=full_data.get("short_description"),
-        logical_verdict=full_data.get("logical_verdict"),
-        final_hook=full_data.get("final_hook"),
-        # New comprehensive analysis sections
-        lead_magnets_analysis=full_data.get("lead_magnets_analysis"),
-        forms_analysis=full_data.get("forms_analysis"),
-        cta_analysis=full_data.get("cta_analysis"),
-        # Legacy detailed category analysis (backward compatibility)
-        detailed_lead_magnets=full_data.get("detailed_lead_magnets"),
-        detailed_forms=full_data.get("detailed_forms"),
-        detailed_social_proof=full_data.get("detailed_social_proof"),
-        detailed_mailto=full_data.get("detailed_mailto"),
-        detailed_ungated_pdfs=full_data.get("detailed_ungated_pdfs"),
-        # AI-generated criteria explanations
-        criteria_explanations=full_data.get("criteria_explanations"),
-        # Raw detected elements
-        lead_magnets=scraped.get("lead_magnets", []),
-        forms=scraped.get("forms", []),
-        cta_buttons=scraped.get("cta_buttons", []),
-        social_proof=scraped.get("social_proof", []),
-        mailto_links=scraped.get("mailto_links", []),
-        ungated_pdfs=scraped.get("ungated_pdfs", []),
-        # Analysis scores
-        criteria_analysis=[
-            AnalysisCriterion(**c) for c in full_data.get("criteria_analysis", [])
-        ],
-        summary_assessment=full_data.get("summary_assessment", ""),
-        recommendations=full_data.get("recommendations", []),
-        ai_generated=full_data.get("ai_generated", False),
-        created_at=report.created_at,
-    )
+    # Safely build criteria_analysis with validation
+    criteria_list = []
+    for c in full_data.get("criteria_analysis", []):
+        try:
+            criteria_list.append(AnalysisCriterion(
+                criterion=c.get("criterion", "unknown"),
+                criterion_label=c.get("criterion_label", c.get("criterion", "Unknown")),
+                score=int(c.get("score", 1)),
+                explanation=c.get("explanation", "")
+            ))
+        except Exception as e:
+            logger.error(f"Failed to parse criterion {c}: {e}")
+            # Add a fallback criterion
+            criteria_list.append(AnalysisCriterion(
+                criterion=c.get("criterion", "unknown"),
+                criterion_label=c.get("criterion_label", "Unknown"),
+                score=1,
+                explanation="Data kunde inte parsas"
+            ))
+
+    try:
+        return FullReportResponse(
+            report_id=report.id,
+            url=report.url,
+            company_name=report.company_name_detected,
+            company_description=report.company_description,
+            overall_score=float(report.overall_score) if report.overall_score else 0.0,
+            issues_count=report.issues_found or 0,
+            # Industry detection
+            detected_industry=full_data.get("detected_industry"),
+            industry_label=full_data.get("industry_label"),
+            # AI-generated text sections (comprehensive)
+            short_description=full_data.get("short_description"),
+            logical_verdict=full_data.get("logical_verdict"),
+            final_hook=full_data.get("final_hook"),
+            # New comprehensive analysis sections
+            lead_magnets_analysis=full_data.get("lead_magnets_analysis"),
+            forms_analysis=full_data.get("forms_analysis"),
+            cta_analysis=full_data.get("cta_analysis"),
+            # Legacy detailed category analysis (backward compatibility)
+            detailed_lead_magnets=full_data.get("detailed_lead_magnets"),
+            detailed_forms=full_data.get("detailed_forms"),
+            detailed_social_proof=full_data.get("detailed_social_proof"),
+            detailed_mailto=full_data.get("detailed_mailto"),
+            detailed_ungated_pdfs=full_data.get("detailed_ungated_pdfs"),
+            # AI-generated criteria explanations
+            criteria_explanations=full_data.get("criteria_explanations"),
+            # Raw detected elements
+            lead_magnets=scraped.get("lead_magnets", []),
+            forms=scraped.get("forms", []),
+            cta_buttons=scraped.get("cta_buttons", []),
+            social_proof=scraped.get("social_proof", []),
+            mailto_links=scraped.get("mailto_links", []),
+            ungated_pdfs=scraped.get("ungated_pdfs", []),
+            # Analysis scores
+            criteria_analysis=criteria_list,
+            summary_assessment=full_data.get("summary_assessment", ""),
+            recommendations=full_data.get("recommendations", []),
+            ai_generated=full_data.get("ai_generated", False),
+            created_at=report.created_at,
+        )
+    except Exception as e:
+        logger.error(f"Failed to build FullReportResponse for report {report_id}: {e}")
+        logger.error(f"full_data keys: {list(full_data.keys())}")
+        logger.error(f"scraped keys: {list(scraped.keys())}")
+        raise HTTPException(status_code=500, detail=f"Kunde inte bygga rapport: {str(e)}")
 
 
 @router.get("/report/{report_id}/pdf")
