@@ -324,7 +324,7 @@ REPORT_PAGE_TEMPLATE = '''
                         <h2 class="text-lg font-semibold text-white mb-4">Sammanfattande bedömning:</h2>
                         <div class="bg-white/5 rounded-xl border border-white/10 p-5">
                             <div class="flex flex-col gap-4">
-                                ${(data.summary_assessment || 'Ingen sammanfattning tillgänglig.').split(/\n\n|\n/).filter(line => line.trim()).map(line => `
+                                ${(data.summary_assessment || 'Ingen sammanfattning tillgänglig.').split(String.fromCharCode(10)).filter(line => line.trim()).map(line => `
                                 <div class="flex items-start gap-3">
                                     <div class="w-2 h-2 bg-primary-500 rounded-full mt-2 flex-shrink-0"></div>
                                     <span class="text-gray-300 leading-relaxed">${escapeHtml(line.trim())}</span>
