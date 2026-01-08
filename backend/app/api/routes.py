@@ -32,6 +32,7 @@ from app.services.analyzer import ConversionAnalyzer
 from app.services.ai_report_generator import generate_enhanced_report
 from app.services.industry_detector import IndustryDetector
 from app.services.pdf_generator import generate_report_pdf
+from app.core.auth import verify_admin
 
 
 def generate_ai_sync(report_id: int, scraped_data: dict, analysis: dict):
@@ -862,10 +863,11 @@ async def get_widget_js():
 async def list_leads(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_admin)
 ):
     """
-    List all captured leads (admin only in production).
+    List all captured leads. Requires admin authentication.
     """
     leads = db.query(Lead).order_by(Lead.created_at.desc()).offset(skip).limit(limit).all()
     return [LeadListItem.model_validate(lead) for lead in leads]
@@ -875,10 +877,11 @@ async def list_leads(
 async def list_reports(
     skip: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_admin)
 ):
     """
-    List all reports (admin only in production).
+    List all reports. Requires admin authentication.
     """
     reports = db.query(Report).order_by(Report.created_at.desc()).offset(skip).limit(limit).all()
 
@@ -903,9 +906,12 @@ async def list_reports(
 
 
 @router.get("/admin/stats", response_model=DashboardStats)
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(
+    db: Session = Depends(get_db),
+    _: str = Depends(verify_admin)
+):
     """
-    Get dashboard statistics (admin only in production).
+    Get dashboard statistics. Requires admin authentication.
     """
     today = datetime.utcnow().date()
 

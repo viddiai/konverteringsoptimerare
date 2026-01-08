@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production"
     REPORT_ACCESS_TOKEN_EXPIRE_HOURS: int = 72
 
+    # Admin credentials (set via environment variables in production)
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "changeme123"
+
     # Email (for sending reports)
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = 587

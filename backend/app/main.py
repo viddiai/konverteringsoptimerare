@@ -2,7 +2,7 @@
 FastAPI main application entry point.
 """
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
@@ -10,6 +10,7 @@ import os
 
 from app.core.config import settings
 from app.core.database import engine, Base
+from app.core.auth import verify_admin
 from app.api.routes import router
 
 
@@ -430,6 +431,224 @@ async def widget_embed_page():
     Query params: theme (light/dark), color (hex color)
     """
     return HTMLResponse(content=WIDGET_EMBED_TEMPLATE)
+
+
+# Admin Dashboard
+ADMIN_DASHBOARD_TEMPLATE = '''
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Konverteringsoptimerare</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 400: '#34d399', 500: '#10b981', 600: '#059669' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen text-white">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-white mb-2">Admin Dashboard</h1>
+            <p class="text-gray-400">Konverteringsoptimerare - Statistik och leads</p>
+        </header>
+
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-20">
+            <div class="inline-block w-12 h-12 border-4 border-white/10 border-t-primary-500 rounded-full animate-spin"></div>
+            <p class="mt-4 text-gray-400">Laddar data...</p>
+        </div>
+
+        <!-- Dashboard content -->
+        <div id="dashboard" class="hidden">
+            <!-- Stats cards -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-white/5 rounded-xl p-5 border border-white/10">
+                    <p class="text-gray-400 text-sm mb-1">Totalt leads</p>
+                    <p id="stat-leads" class="text-3xl font-bold text-primary-500">-</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-5 border border-white/10">
+                    <p class="text-gray-400 text-sm mb-1">Totalt rapporter</p>
+                    <p id="stat-reports" class="text-3xl font-bold text-white">-</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-5 border border-white/10">
+                    <p class="text-gray-400 text-sm mb-1">Leads idag</p>
+                    <p id="stat-leads-today" class="text-3xl font-bold text-primary-500">-</p>
+                </div>
+                <div class="bg-white/5 rounded-xl p-5 border border-white/10">
+                    <p class="text-gray-400 text-sm mb-1">Snittbetyg</p>
+                    <p id="stat-avg-score" class="text-3xl font-bold text-white">-</p>
+                </div>
+            </div>
+
+            <!-- Top Issues -->
+            <div class="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
+                <h2 class="text-xl font-semibold text-white mb-4">Vanligaste problemen</h2>
+                <div id="top-issues" class="space-y-3"></div>
+            </div>
+
+            <!-- Leads table -->
+            <div class="bg-white/5 rounded-xl p-6 border border-white/10 mb-8">
+                <h2 class="text-xl font-semibold text-white mb-4">Senaste leads</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="text-gray-400 text-sm border-b border-white/10">
+                            <tr>
+                                <th class="py-3 px-2">Namn</th>
+                                <th class="py-3 px-2">E-post</th>
+                                <th class="py-3 px-2">Företag</th>
+                                <th class="py-3 px-2">Analyserad URL</th>
+                                <th class="py-3 px-2">Datum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-table" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Reports table -->
+            <div class="bg-white/5 rounded-xl p-6 border border-white/10">
+                <h2 class="text-xl font-semibold text-white mb-4">Senaste rapporter</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="text-gray-400 text-sm border-b border-white/10">
+                            <tr>
+                                <th class="py-3 px-2">ID</th>
+                                <th class="py-3 px-2">URL</th>
+                                <th class="py-3 px-2">Företag</th>
+                                <th class="py-3 px-2">Betyg</th>
+                                <th class="py-3 px-2">Lead</th>
+                                <th class="py-3 px-2">Datum</th>
+                                <th class="py-3 px-2">Åtgärder</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reports-table" class="text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const criterionLabels = {
+            'lead_magnets': 'Lead Magnets',
+            'social_proof': 'Social Proof',
+            'form_design': 'Formulärdesign',
+            'call_to_action': 'Call to Action',
+            'value_proposition': 'Värdeerbjudande',
+            'guiding_content': 'Vägledande innehåll'
+        };
+
+        async function loadDashboard() {
+            try {
+                const [statsRes, leadsRes, reportsRes] = await Promise.all([
+                    fetch('/api/admin/stats'),
+                    fetch('/api/admin/leads?limit=20'),
+                    fetch('/api/admin/reports?limit=20')
+                ]);
+
+                if (!statsRes.ok || !leadsRes.ok || !reportsRes.ok) {
+                    throw new Error('Failed to load data');
+                }
+
+                const stats = await statsRes.json();
+                const leads = await leadsRes.json();
+                const reports = await reportsRes.json();
+
+                // Update stats
+                document.getElementById('stat-leads').textContent = stats.total_leads;
+                document.getElementById('stat-reports').textContent = stats.total_reports;
+                document.getElementById('stat-leads-today').textContent = stats.leads_today;
+                document.getElementById('stat-avg-score').textContent = stats.average_score ? stats.average_score.toFixed(1) + '/5' : '-';
+
+                // Update top issues
+                const issuesHtml = (stats.top_issues || []).map(issue => {
+                    const label = criterionLabels[issue.criterion] || issue.criterion;
+                    const percentage = Math.round((issue.count / stats.total_reports) * 100);
+                    return '<div class="flex items-center gap-3">' +
+                        '<div class="flex-1">' +
+                            '<div class="flex justify-between mb-1">' +
+                                '<span class="text-gray-300">' + label + '</span>' +
+                                '<span class="text-gray-500">' + issue.count + ' (' + percentage + '%)</span>' +
+                            '</div>' +
+                            '<div class="h-2 bg-white/10 rounded-full overflow-hidden">' +
+                                '<div class="h-full bg-red-500 rounded-full" style="width: ' + percentage + '%"></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>';
+                }).join('');
+                document.getElementById('top-issues').innerHTML = issuesHtml || '<p class="text-gray-500">Inga data</p>';
+
+                // Update leads table
+                const leadsHtml = leads.map(lead => {
+                    const date = new Date(lead.created_at).toLocaleDateString('sv-SE');
+                    return '<tr class="border-b border-white/5 hover:bg-white/5">' +
+                        '<td class="py-3 px-2 text-white">' + (lead.name || '-') + '</td>' +
+                        '<td class="py-3 px-2"><a href="mailto:' + lead.email + '" class="text-primary-500 hover:text-primary-400">' + lead.email + '</a></td>' +
+                        '<td class="py-3 px-2 text-gray-300">' + (lead.company_name || '-') + '</td>' +
+                        '<td class="py-3 px-2 text-gray-400 max-w-xs truncate">' + (lead.analyzed_url || '-') + '</td>' +
+                        '<td class="py-3 px-2 text-gray-500">' + date + '</td>' +
+                    '</tr>';
+                }).join('');
+                document.getElementById('leads-table').innerHTML = leadsHtml || '<tr><td colspan="5" class="py-4 text-center text-gray-500">Inga leads ännu</td></tr>';
+
+                // Update reports table
+                const reportsHtml = reports.map(report => {
+                    const date = new Date(report.created_at).toLocaleDateString('sv-SE');
+                    const score = report.overall_score ? report.overall_score.toFixed(1) : '-';
+                    const scoreColor = report.overall_score >= 3 ? 'text-primary-500' : report.overall_score >= 2 ? 'text-yellow-500' : 'text-red-500';
+                    const pdfUrl = report.access_token ? '/api/report/' + report.id + '/pdf?token=' + report.access_token : null;
+                    const reportUrl = report.access_token ? '/report/' + report.id + '?token=' + report.access_token : null;
+                    return '<tr class="border-b border-white/5 hover:bg-white/5">' +
+                        '<td class="py-3 px-2 text-gray-400">#' + report.id + '</td>' +
+                        '<td class="py-3 px-2 text-gray-300 max-w-xs truncate">' + report.url + '</td>' +
+                        '<td class="py-3 px-2 text-white">' + (report.company_name_detected || '-') + '</td>' +
+                        '<td class="py-3 px-2 ' + scoreColor + ' font-medium">' + score + '</td>' +
+                        '<td class="py-3 px-2 text-gray-400">' + (report.lead_email || '-') + '</td>' +
+                        '<td class="py-3 px-2 text-gray-500">' + date + '</td>' +
+                        '<td class="py-3 px-2">' +
+                            (reportUrl ? '<a href="' + reportUrl + '" target="_blank" class="text-primary-500 hover:text-primary-400 mr-3">Visa</a>' : '') +
+                            (pdfUrl ? '<a href="' + pdfUrl + '" class="text-gray-400 hover:text-white">PDF</a>' : '') +
+                        '</td>' +
+                    '</tr>';
+                }).join('');
+                document.getElementById('reports-table').innerHTML = reportsHtml || '<tr><td colspan="7" class="py-4 text-center text-gray-500">Inga rapporter ännu</td></tr>';
+
+                // Show dashboard
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboard').classList.remove('hidden');
+
+            } catch (err) {
+                console.error('Error loading dashboard:', err);
+                document.getElementById('loading').innerHTML = '<p class="text-red-500">Kunde inte ladda data</p>';
+            }
+        }
+
+        loadDashboard();
+    </script>
+</body>
+</html>
+'''
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_dashboard(username: str = Depends(verify_admin)):
+    """
+    Admin dashboard page - requires Basic Auth.
+    """
+    return HTMLResponse(content=ADMIN_DASHBOARD_TEMPLATE)
 
 
 if __name__ == "__main__":
