@@ -109,11 +109,11 @@ ANALYSIS_CRITERIA = [
 ]
 
 CRITERIA_LABELS = {
-    "value_proposition": "Värdeerbjudandets Tydlighet",
-    "call_to_action": "Call to Action Effektivitet",
-    "social_proof": "Social Proof & Trovärdighet",
+    "value_proposition": "Värdeerbjudandets tydlighet",
+    "call_to_action": "Call to Action-effektivitet",
+    "social_proof": "Social proof & trovärdighet",
     "lead_magnets": "Leadmagnet-kvalitet",
-    "form_design": "Formulärdesign & Friktion",
-    "guiding_content": "Vägledande Innehåll",
-    "offer_structure": "Erbjudandets Struktur",
+    "form_design": "Formulärdesign & friktion",
+    "guiding_content": "Vägledande innehåll",
+    "offer_structure": "Erbjudandets struktur",
 }

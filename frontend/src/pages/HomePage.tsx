@@ -121,6 +121,106 @@ export default function HomePage() {
         </section>
       )}
 
+      {/* Guide Value Proposition */}
+      {view === 'input' && (
+        <section className="py-16 px-4 border-t border-white/10">
+          <div className="container mx-auto max-w-5xl">
+            <div className="bg-white rounded-2xl p-8 md:p-12 flex flex-col md:flex-row gap-8 items-center">
+              {/* Guide Cover Image */}
+              <div className="flex-shrink-0 w-full md:w-80">
+                <div className="bg-black rounded-xl p-6 text-center">
+                  <div className="w-8 h-8 mx-auto mb-4">
+                    <svg viewBox="0 0 24 24" fill="none" className="text-primary-500">
+                      <path d="M12 2L2 7l10 5 10-5-10-5z" fill="currentColor" opacity="0.3"/>
+                      <path d="M2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  <h3 className="text-white text-xl font-bold mb-2 leading-tight">
+                    7 beprövade sätt att öka konverteringen och vinna fler affärer
+                  </h3>
+                  <p className="text-gray-400 text-sm">
+                    En strategisk guide för VD:ar och säljchefer på medelstora svenska företag
+                  </p>
+                  <div className="mt-6 flex justify-center">
+                    <div className="relative w-32 h-32">
+                      {/* Funnel illustration */}
+                      <svg viewBox="0 0 100 100" className="w-full h-full">
+                        <polygon points="20,20 80,20 65,50 35,50" fill="#4ECDC4" opacity="0.8"/>
+                        <polygon points="35,50 65,50 55,80 45,80" fill="#FF6B6B" opacity="0.8"/>
+                        <polygon points="45,80 55,80 50,95 50,95" fill="#FFE66D" opacity="0.8"/>
+                        <path d="M70,30 Q90,40 85,60" stroke="#4ECDC4" strokeWidth="3" fill="none" markerEnd="url(#arrow)"/>
+                        <defs>
+                          <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                            <path d="M0,0 L0,6 L9,3 z" fill="#4ECDC4"/>
+                          </marker>
+                        </defs>
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Guide Content */}
+              <div className="flex-1">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+                  7 beprövade sätt att öka konverteringen och vinna fler affärer
+                </h2>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Denna guide ger dig
+                </h3>
+                <p className="text-gray-600 mb-3">Konkreta verktyg för att:</p>
+                <ul className="space-y-2 text-gray-700 mb-6">
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Formulera ett värdeerbjudande som faktiskt övertygar svenska beslutsfattare</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Fånga upp potentiella kunder innan de är redo att köpa</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Eliminera friktion som dödar affärer</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Bygga systematiskt förtroende genom sociala bevis</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Skapa handlingsdriven kommunikation som leder till avslut</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Strukturera komplex information utan att överväldiga</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-gray-400 mt-1">•</span>
+                    <span>Använda avancerade strategier för dramatisk tillväxt</span>
+                  </li>
+                </ul>
+                <div className="flex items-start gap-2 text-gray-600 mb-6">
+                  <span className="text-yellow-500">💡</span>
+                  <span className="text-sm">
+                    Kom ihåg: Varje kapitel avslutas med "3 saker du kan göra imorgon" – konkreta åtgärder som ger omedelbar effekt.
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <input
+                    type="email"
+                    placeholder="Din e-postadress"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  />
+                  <button className="px-6 py-3 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-600 transition-colors whitespace-nowrap">
+                    Hämta guiden
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Footer */}
       <footer className="border-t border-white/10 py-8 px-4">
         <div className="container mx-auto max-w-5xl text-center text-gray-500 text-sm">
