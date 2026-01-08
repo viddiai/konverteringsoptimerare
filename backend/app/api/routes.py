@@ -76,11 +76,12 @@ def generate_ai_sync(report_id: int, scraped_data: dict, analysis: dict):
                         criteria_analysis = list(full_report["criteria_analysis"])
                         score_map = {
                             "value_proposition": adjusted_scores.get("value_proposition"),
+                            "call_to_action": adjusted_scores.get("call_to_action"),
+                            "social_proof": adjusted_scores.get("social_proof"),
                             "lead_magnets": adjusted_scores.get("lead_magnets"),
                             "form_design": adjusted_scores.get("form_design"),
-                            "social_proof": adjusted_scores.get("social_proof"),
-                            "call_to_action": adjusted_scores.get("call_to_action"),
                             "guiding_content": adjusted_scores.get("guiding_content"),
+                            "offer_structure": adjusted_scores.get("offer_structure"),
                         }
                         for i, criterion in enumerate(criteria_analysis):
                             key = criterion.get("criterion")
@@ -93,12 +94,26 @@ def generate_ai_sync(report_id: int, scraped_data: dict, analysis: dict):
                                 except (ValueError, TypeError):
                                     pass  # Keep original score if AI returned invalid
                         full_report["criteria_analysis"] = criteria_analysis
-                        # Recalculate overall score
-                        total = sum(c["score"] for c in criteria_analysis)
-                        new_overall = round(total / len(criteria_analysis), 1)
+                        # Recalculate overall score using WEIGHTED formula
+                        # Viktning: value_proposition=2.0, call_to_action=1.5, lead_magnets=1.5, resten=1.0
+                        weights = {
+                            "value_proposition": 2.0,
+                            "call_to_action": 1.5,
+                            "lead_magnets": 1.5,
+                            "social_proof": 1.0,
+                            "form_design": 1.0,
+                            "guiding_content": 1.0,
+                            "offer_structure": 1.0,
+                        }
+                        total_weight = sum(weights.values())  # 9.0
+                        weighted_sum = sum(
+                            c["score"] * weights.get(c["criterion"], 1.0)
+                            for c in criteria_analysis
+                        )
+                        new_overall = round(weighted_sum / total_weight, 1)
                         full_report["overall_score"] = new_overall
                         report.overall_score = new_overall  # Update Report model too
-                        print(f"📊 Applied AI-adjusted scores for report {report_id}: overall {new_overall}/5")
+                        print(f"📊 Applied AI-adjusted scores for report {report_id}: overall {new_overall}/5 (weighted)")
 
                     # Legacy fields (backward compatibility)
                     full_report["final_hook"] = enhanced_sections.get("final_hook", "")
@@ -167,6 +182,8 @@ async def analyze_url(
             "criteria_analysis": analysis["criteria_analysis"],
             "summary_assessment": analyzer.generate_summary_assessment(),
             "recommendations": analyzer.generate_recommendations(),
+            # Leaking funnels - dedicated section for critical lead leaks
+            "leaking_funnels": analysis.get("leaking_funnels", []),
             # Placeholder for AI sections (will be filled by background task)
             "short_description": quick_description,
             "logical_verdict": "",

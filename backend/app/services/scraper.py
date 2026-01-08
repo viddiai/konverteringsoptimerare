@@ -423,6 +423,71 @@ class WebScraper:
 
         return result
 
+    def extract_offer_structure(self, soup: BeautifulSoup) -> Dict[str, Any]:
+        """
+        Extract offer structure data: pricing, low-barrier offers, segmentation.
+        """
+        result = {
+            "has_pricing": False,
+            "pricing_elements": [],
+            "has_free_offer": False,
+            "free_offers": [],
+            "has_segmented_pricing": False,
+            "pricing_tiers": 0,
+        }
+
+        # Look for pricing keywords
+        pricing_keywords = ["pris", "price", "kostnad", "cost", "kr", "sek", "€", "$",
+                          "/mån", "/månad", "/month", "/år", "/year", "från"]
+
+        # Search for pricing sections
+        pricing_section_keywords = ["pris", "price", "pricing", "paket", "package", "plan"]
+        for elem in soup.find_all(["section", "div", "table"]):
+            classes = " ".join(elem.get("class", [])).lower()
+            elem_id = (elem.get("id") or "").lower()
+
+            if any(k in classes or k in elem_id for k in pricing_section_keywords):
+                result["has_pricing"] = True
+                text = elem.get_text(strip=True)[:200]
+                result["pricing_elements"].append({
+                    "type": "section",
+                    "content": text
+                })
+
+                # Check for multiple tiers (Basic/Pro/Premium pattern)
+                tier_keywords = ["basic", "pro", "premium", "starter", "enterprise",
+                               "standard", "plus", "bas", "professionell"]
+                tier_count = sum(1 for kw in tier_keywords if kw in text.lower())
+                if tier_count >= 2:
+                    result["has_segmented_pricing"] = True
+                    result["pricing_tiers"] = tier_count
+
+        # Look for pricing in tables (common pattern)
+        for table in soup.find_all("table"):
+            text = table.get_text(strip=True).lower()
+            if any(kw in text for kw in pricing_keywords):
+                result["has_pricing"] = True
+                # Count columns as potential tiers
+                headers = table.find_all("th")
+                if len(headers) >= 3:
+                    result["has_segmented_pricing"] = True
+                    result["pricing_tiers"] = max(result["pricing_tiers"], len(headers) - 1)
+
+        # Look for free/trial offers
+        free_keywords = ["gratis", "free", "kostnadsfri", "prova", "try", "trial",
+                        "provperiod", "demo", "test", "ingen bindning", "no commitment"]
+
+        for elem in soup.find_all(["a", "button", "span", "div"]):
+            text = elem.get_text(strip=True).lower()
+            if any(kw in text for kw in free_keywords) and len(text) < 100:
+                result["has_free_offer"] = True
+                result["free_offers"].append({
+                    "text": elem.get_text(strip=True),
+                    "tag": elem.name,
+                })
+
+        return result
+
     async def scrape_and_analyze(self, url: str) -> Dict[str, Any]:
         """
         Main method: scrape page and extract all analysis data.
@@ -443,4 +508,5 @@ class WebScraper:
             "mailto_links": self.extract_mailto_links(soup),
             "ungated_pdfs": self.extract_ungated_pdfs(soup, final_url),
             "value_proposition": self.extract_value_proposition(soup),
+            "offer_structure": self.extract_offer_structure(soup),
         }

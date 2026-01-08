@@ -97,21 +97,23 @@ class AnalysisData(Base):
         return f"<AnalysisData(criterion={self.criterion}, score={self.score})>"
 
 
-# Analysis criteria constants
+# Analysis criteria constants - 7 kategorier enligt analyzer_prompt.md
 ANALYSIS_CRITERIA = [
-    "value_proposition",  # Tydlighet i värdeerbjudande
-    "lead_magnets",       # Lead Magnets
-    "form_design",        # Formulärdesign
-    "social_proof",       # Social Proof
-    "call_to_action",     # Call to Action
-    "guiding_content",    # Vägledande innehåll
+    "value_proposition",  # Tydlighet i värdeerbjudande (×2.0)
+    "call_to_action",     # Call to Action (×1.5)
+    "social_proof",       # Social Proof (×1.0)
+    "lead_magnets",       # Lead Magnets (×1.5)
+    "form_design",        # Formulärdesign (×1.0)
+    "guiding_content",    # Vägledande innehåll (×1.0)
+    "offer_structure",    # Erbjudandets struktur (×1.0) - NY
 ]
 
 CRITERIA_LABELS = {
-    "value_proposition": "Tydlighet i värdeerbjudande",
-    "lead_magnets": "Lead Magnets",
-    "form_design": "Formulärdesign",
-    "social_proof": "Social Proof",
-    "call_to_action": "Call to Action",
-    "guiding_content": "Vägledande innehåll",
+    "value_proposition": "Värdeerbjudandets Tydlighet",
+    "call_to_action": "Call to Action Effektivitet",
+    "social_proof": "Social Proof & Trovärdighet",
+    "lead_magnets": "Leadmagnet-kvalitet",
+    "form_design": "Formulärdesign & Friktion",
+    "guiding_content": "Vägledande Innehåll",
+    "offer_structure": "Erbjudandets Struktur",
 }
