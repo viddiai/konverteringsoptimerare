@@ -374,7 +374,7 @@ REPORT_PAGE_TEMPLATE = '''
                     </section>
 
                     <footer class="text-center text-gray-500 text-sm py-8">
-                        <p>Genererad av Portalfabriken.se</p>
+                        <p><a href="https://portalfabriken.se" target="_blank" class="text-primary-500 hover:text-primary-400 transition-colors">Gå till Portalfabriken</a></p>
                     </footer>
                 </div>
             `;
