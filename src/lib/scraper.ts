@@ -99,7 +99,7 @@ function parseHtmlQuick(html: string, url: string): ScrapedData {
 
 /**
  * FULL Scraper - Fas 2
- * Uses Promise.race - returns first successful result
+ * Uses Scrapfly for JS-rendered pages, direct fetch as fast fallback
  */
 export async function scrapeWebsite(url: string): Promise<ScrapedData> {
     let normalizedUrl = url.trim();
@@ -111,83 +111,114 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
     const cacheKey = normalizedUrl.toLowerCase();
     const cached = scrapeCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+        console.log("Scraper: Cache hit for", normalizedUrl);
         return cached.data;
     }
 
+    const scrapflyKey = process.env.SCRAPFLY_API_KEY;
+
+    // Strategy: Try direct fetch first (fast), use Scrapfly as powerful fallback
+    try {
+        // Fast direct fetch (2s timeout)
+        const directResult = await scrapeDirectFast(normalizedUrl);
+        if (directResult.visibleText.length > 200) {
+            console.log("Scraper: Direct fetch success, text length:", directResult.visibleText.length);
+            scrapeCache.set(cacheKey, { data: directResult, timestamp: Date.now() });
+            return directResult;
+        }
+        console.log("Scraper: Direct fetch got thin content, trying Scrapfly...");
+    } catch (e) {
+        console.log("Scraper: Direct fetch failed, trying Scrapfly...", e instanceof Error ? e.message : e);
+    }
+
+    // Scrapfly for JS-rendered pages or when direct fails
+    if (scrapflyKey) {
+        try {
+            const scrapflyResult = await scrapeWithScrapfly(normalizedUrl, scrapflyKey);
+            scrapeCache.set(cacheKey, { data: scrapflyResult, timestamp: Date.now() });
+            return scrapflyResult;
+        } catch (e) {
+            console.error("Scraper: Scrapfly failed:", e instanceof Error ? e.message : e);
+        }
+    }
+
+    throw new Error(`Kunde inte hämta ${normalizedUrl}`);
+}
+
+/**
+ * Fast direct fetch without JS rendering (2s timeout)
+ */
+async function scrapeDirectFast(url: string): Promise<ScrapedData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 4000); // 4s max!
-
-    // RACE: First one to succeed wins!
-    const directPromise = fetch(normalizedUrl, {
-        signal: controller.signal,
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)',
-            'Accept': 'text/html',
-        },
-        redirect: 'follow',
-    }).then(async (res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const html = await res.text();
-        clearTimeout(timeout);
-        return parseHtml(html, normalizedUrl);
-    });
-
-    // Jina as backup (often slower)
-    const jinaPromise = fetch(`https://r.jina.ai/${normalizedUrl}`, {
-        headers: { 'Accept': 'text/plain' },
-        signal: controller.signal
-    }).then(async (res) => {
-        if (!res.ok) throw new Error(`Jina ${res.status}`);
-        const md = await res.text();
-        clearTimeout(timeout);
-        return parseJinaMarkdown(md, normalizedUrl);
-    });
+    const timeout = setTimeout(() => controller.abort(), 2000);
 
     try {
-        // Return whichever finishes first!
-        const result = await Promise.race([directPromise, jinaPromise]);
-        scrapeCache.set(cacheKey, { data: result, timestamp: Date.now() });
-        return result;
+        const res = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
+            },
+            redirect: 'follow',
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        return parseHtml(html, url);
     } catch (e) {
         clearTimeout(timeout);
-        // If race failed, try waiting for either
-        try {
-            const fallback = await Promise.any([directPromise, jinaPromise]);
-            scrapeCache.set(cacheKey, { data: fallback, timestamp: Date.now() });
-            return fallback;
-        } catch {
-            throw new Error(`Kunde inte hämta ${normalizedUrl}`);
-        }
+        throw e;
     }
 }
 
 /**
- * Parse Jina markdown (compact)
+ * Scrapfly scraper with JS rendering for modern websites
  */
-function parseJinaMarkdown(markdown: string, url: string): ScrapedData {
-    // Extract title from markdown
-    const titleMatch = markdown.match(/^Title:\s*(.*)$/m);
-    const title = titleMatch ? titleMatch[1].trim() : '';
+async function scrapeWithScrapfly(url: string, apiKey: string): Promise<ScrapedData> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s for Scrapfly
 
-    // Extract H1s
-    const h1s = markdown.match(/^# (.*)$/gm)?.map(h => h.replace(/^# /, '').trim()) || [];
+    try {
+        console.log("Scraper: Calling Scrapfly for", url);
+        const startTime = Date.now();
 
-    return {
-        url,
-        title,
-        metaDescription: '', // Jina often misses this in plain text, but content is better
-        h1: h1s,
-        headings: [], // We'll rely on visibleText for structure
-        paragraphs: [],
-        links: [],
-        buttons: [],
-        forms: [],
-        images: [],
-        visibleText: markdown,
-        localLeaks: [] // We lose local regex leaks with plain text, but AI will find them in markdown
-    };
+        const params = new URLSearchParams({
+            key: apiKey,
+            url: url,
+            render_js: 'true',
+            rendering_wait: '2000',
+            country: 'se',
+            asp: 'true', // Anti-scraping protection bypass
+        });
+
+        const res = await fetch(`https://api.scrapfly.io/scrape?${params}`, {
+            signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        console.log(`Scraper: Scrapfly response in ${Date.now() - startTime}ms, status: ${res.status}`);
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Scrapfly error:", res.status, errorText.substring(0, 200));
+            throw new Error(`Scrapfly ${res.status}`);
+        }
+
+        const data = await res.json();
+        const html = data.result?.content || '';
+
+        if (!html) {
+            throw new Error('Scrapfly returned empty content');
+        }
+
+        console.log("Scraper: Scrapfly success, HTML length:", html.length);
+        return parseHtml(html, url);
+    } catch (e) {
+        clearTimeout(timeout);
+        throw e;
+    }
 }
-
 
 /**
  * Parse HTML content into structured data
