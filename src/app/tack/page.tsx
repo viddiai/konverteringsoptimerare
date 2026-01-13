@@ -59,7 +59,7 @@ export default function ThankYouPage() {
                                     En strategisk guide för VD:ar och säljchefer på medelstora svenska företag
                                 </p>
                                 <a
-                                    href="https://portalfabriken.se/7-beprovade-satt.pdf"
+                                    href="https://portalfabriken.se/7-beprovade-satt-att-oka-konverteringen.pdf"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors"

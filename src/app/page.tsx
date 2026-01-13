@@ -352,14 +352,31 @@ export default function Home() {
                                             name="email"
                                             placeholder="Din e-postadress"
                                             required
-                                            className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                                            style={{
+                                                flex: 1,
+                                                padding: '12px 16px',
+                                                backgroundColor: '#f3f4f6',
+                                                border: '2px solid #d1d5db',
+                                                borderRadius: '8px',
+                                                color: '#111827',
+                                                fontSize: '16px',
+                                            }}
                                         />
                                         <input type="hidden" name="_subject" value="Ny guide-nedladdning från Konverteramera" />
                                         <input type="hidden" name="_next" value="https://konverteramera.netlify.app/tack" />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
-                                            className="px-6 py-3 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors whitespace-nowrap"
+                                            style={{
+                                                padding: '12px 24px',
+                                                backgroundColor: '#10b981',
+                                                color: 'white',
+                                                fontWeight: 500,
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                whiteSpace: 'nowrap',
+                                            }}
                                         >
                                             Hämta guiden
                                         </button>
