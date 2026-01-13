@@ -117,16 +117,18 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
 
     const scrapflyKey = process.env.SCRAPFLY_API_KEY;
 
-    // Strategy: Try direct fetch first (fast), use Scrapfly as powerful fallback
+    // Strategy: Try direct fetch first (fast), use Scrapfly only when truly needed
     try {
         // Fast direct fetch (2s timeout)
         const directResult = await scrapeDirectFast(normalizedUrl);
-        if (directResult.visibleText.length > 200) {
+        // Raised threshold: only fallback to Scrapfly if content is truly thin
+        // Most static sites have 500+ chars, JS-heavy SPAs often have <100
+        if (directResult.visibleText.length > 100 && directResult.h1.length > 0) {
             console.log("Scraper: Direct fetch success, text length:", directResult.visibleText.length);
             scrapeCache.set(cacheKey, { data: directResult, timestamp: Date.now() });
             return directResult;
         }
-        console.log("Scraper: Direct fetch got thin content, trying Scrapfly...");
+        console.log("Scraper: Direct fetch got thin content (" + directResult.visibleText.length + " chars, " + directResult.h1.length + " h1s), trying Scrapfly...");
     } catch (e) {
         console.log("Scraper: Direct fetch failed, trying Scrapfly...", e instanceof Error ? e.message : e);
     }
@@ -177,7 +179,7 @@ async function scrapeDirectFast(url: string): Promise<ScrapedData> {
  */
 async function scrapeWithScrapfly(url: string, apiKey: string): Promise<ScrapedData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10000); // 10s for Scrapfly
+    const timeout = setTimeout(() => controller.abort(), 6000); // 6s timeout (reduced from 10s)
 
     try {
         console.log("Scraper: Calling Scrapfly for", url);
@@ -187,7 +189,7 @@ async function scrapeWithScrapfly(url: string, apiKey: string): Promise<ScrapedD
             key: apiKey,
             url: url,
             render_js: 'true',
-            rendering_wait: '2000',
+            rendering_wait: '1000', // Reduced from 2000ms - most JS loads within 1s
             country: 'se',
             asp: 'true', // Anti-scraping protection bypass
         });

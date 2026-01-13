@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'URL is required' }, { status: 400 });
         }
 
-        // Two-phase streaming response
+        // Two-phase streaming response with PARALLEL scraping
         const stream = new ReadableStream({
             async start(controller) {
                 const encoder = new TextEncoder();
@@ -20,22 +20,27 @@ export async function POST(request: NextRequest) {
                 };
 
                 try {
-                    // ========== PHASE 1: Quick Analysis (<3s) ==========
+                    // ========== START BOTH SCRAPES IN PARALLEL ==========
                     send({ type: 'progress', data: { step: 'quick_scraping', message: 'Snabbhämtar webbsida...' } });
 
+                    // Start full scrape immediately (don't wait for quick analysis)
+                    const fullScrapePromise = scrapeWebsite(url);
+
+                    // Quick scrape runs in parallel
                     const quickData = await scrapeQuick(url);
 
-                    // Only proceed with quick analysis if we got some content
+                    // ========== PHASE 1: Quick Analysis ==========
                     if (quickData.visibleText) {
                         send({ type: 'progress', data: { step: 'quick_analyzing', message: 'Snabbanalyserar...' } });
                         const quickResult = await analyzeQuick(quickData);
                         send({ type: 'quick_result', data: quickResult });
                     }
 
-                    // ========== PHASE 2: Full Analysis ==========
+                    // ========== PHASE 2: Full Analysis (scrape already running) ==========
                     send({ type: 'progress', data: { step: 'full_scraping', message: 'Hämtar fullständig data...' } });
 
-                    const fullData = await scrapeWebsite(url);
+                    // Wait for full scrape (likely already done or almost done)
+                    const fullData = await fullScrapePromise;
 
                     send({ type: 'progress', data: { step: 'full_analyzing', message: 'Djupanalyserar...' } });
 
