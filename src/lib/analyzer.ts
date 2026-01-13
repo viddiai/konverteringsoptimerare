@@ -21,23 +21,15 @@ const CATEGORY_DEFINITIONS: Record<string, { name: string; icon: string; weight:
   offer_structure: { name: 'Erbjudandets Struktur', icon: '📦', weight: 1.0 }
 };
 
-const SYSTEM_PROMPT_1 = `Du är en konverteringsexpert. Analysera kategorierna 1-5 för den svenska webbplatsen.
-Returnera JSON: { "categories": [{ "id": "...", "score": 1-5, "status": "critical|improvement|good", "problems": [...] }] }
-IDs: value_proposition, call_to_action, social_proof, lead_magnets, form_design.
-Var extremt konkret.`;
+// Combined prompt for ALL 10 categories (faster than 2 separate calls)
+const SYSTEM_PROMPT_CATEGORIES = `Konverteringsexpert. Analysera ALLA 10 kategorier för webbplatsen. Kortfattat.
+JSON: { "categories": [{ "id": "...", "score": 1-5, "status": "critical|improvement|good", "problems": [{"description":"...","recommendation":"..."}] }] }
+IDs: value_proposition, call_to_action, social_proof, lead_magnets, form_design, guarantees, urgency_scarcity, process_clarity, content_architecture, offer_structure.
+Max 1 problem per kategori. Svenska.`;
 
-const SYSTEM_PROMPT_2 = `Du är en konverteringsexpert. Analysera kategorierna 6-10 för den svenska webbplatsen.
-Returnera JSON: { "categories": [{ "id": "...", "score": 1-5, "status": "critical|improvement|good", "problems": [...] }] }
-IDs: guarantees, urgency_scarcity, process_clarity, content_architecture, offer_structure.
-Var extremt konkret.`;
-
-const SYSTEM_PROMPT_3 = `Du är en konverteringsexpert. Skapa sammanfattning och åtgärder för den svenska webbplatsen.
-Returnera JSON: { 
-  "overall_summary": "...", 
-  "strengths": ["...", "...", "..."], 
-  "action_list": [{ "priority": "...", "action": "...", "category_id": "...", "impact": "..." }],
-  "language_detected": "sv"
-}`;
+const SYSTEM_PROMPT_SUMMARY = `Sammanfatta konverteringsanalys. Kortfattat.
+JSON: { "overall_summary": "2 meningar", "strengths": ["kort","kort","kort"], "action_list": [{"priority":"critical|important|nice","action":"kort"}], "language_detected": "sv" }
+Max 5 åtgärder.`;
 
 export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGenerator<any> {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -48,46 +40,41 @@ export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGene
   // Initial yield with metadata
   yield { type: 'metadata', data: { url: scrapedData.url, analyzed_at: new Date().toISOString() } };
 
-  // Parallel Worker Execution with Static Merge
-  const processCategories = async (prompt: string): Promise<any> => {
+  // Process all categories in a single call (faster than 2 separate calls)
+  const processCategories = async (): Promise<any> => {
     try {
-      const res = await callAPI(apiKey, prompt, userPrompt);
+      const res = await callAPI(apiKey, SYSTEM_PROMPT_CATEGORIES, userPrompt, 2000);
       const categories = (res.categories || []).map((cat: any) => {
         const def = CATEGORY_DEFINITIONS[cat.id] || { name: cat.id, icon: '❓', weight: 1.0 };
         return {
           ...cat,
-          ...def, // Merge static definition
+          ...def,
           weighted_score: (cat.score || 3) * def.weight
         };
       });
       return { type: 'categories', data: categories };
     } catch (e) {
-      console.error("Worker failed", e);
+      console.error("Categories failed", e);
       return { type: 'categories', data: [] };
     }
   };
 
-  const p1 = processCategories(SYSTEM_PROMPT_1);
-  const p2 = processCategories(SYSTEM_PROMPT_2);
-  const p3 = callAPI(apiKey, SYSTEM_PROMPT_3, userPrompt).then(res => ({ type: 'summary', data: res }));
+  // Run both in parallel (2 calls instead of 3)
+  const categoriesPromise = processCategories();
+  const summaryPromise = callAPI(apiKey, SYSTEM_PROMPT_SUMMARY, userPrompt, 800)
+    .then(res => ({ type: 'summary', data: res }))
+    .catch(() => ({ type: 'summary', data: {} }));
 
-  // Yield results as they complete using Promise.race pattern
+  // Yield results as they complete
   const pending = new Map<Promise<any>, string>();
-
-  const w1 = p1.then(v => ({ v, id: 'p1' }));
-  const w2 = p2.then(v => ({ v, id: 'p2' }));
-  const w3 = p3.then(v => ({ v, id: 'p3' }));
-
-  pending.set(w1, 'p1');
-  pending.set(w2, 'p2');
-  pending.set(w3, 'p3');
+  pending.set(categoriesPromise.then(v => ({ v, id: 'cat' })), 'cat');
+  pending.set(summaryPromise.then(v => ({ v, id: 'sum' })), 'sum');
 
   while (pending.size > 0) {
     const result = await Promise.race(pending.keys());
     const resolved = await result;
     yield resolved.v;
 
-    // Remove the completed promise
     for (const [promise, id] of pending.entries()) {
       if (id === resolved.id) {
         pending.delete(promise);
@@ -141,52 +128,54 @@ export async function analyzeWebsite(scrapedData: ScrapedData): Promise<Analysis
   };
 }
 
-async function callAPI(apiKey: string, system: string, user: string): Promise<any> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
-      temperature: 0.1,
-      max_tokens: 1500,
-      response_format: { type: 'json_object' }
-    }),
-  });
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) return {};
+async function callAPI(apiKey: string, system: string, user: string, maxTokens: number = 1000): Promise<any> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+
   try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        temperature: 0.1,
+        max_tokens: maxTokens,
+        response_format: { type: 'json_object' }
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return {};
+
     return JSON.parse(content);
   } catch (e) {
-    console.error("JSON parse error:", e);
+    clearTimeout(timeout);
+    console.error("API call failed:", e);
     return {};
   }
 }
 
 function formatScrapedDataForPrompt(data: ScrapedData): string {
-  const content = data.visibleText.substring(0, 5000);
+  // Reduced to 3000 chars for faster processing
+  const content = data.visibleText.substring(0, 3000);
 
-  // Format forms for analysis
-  const formsInfo = data.forms && data.forms.length > 0
-    ? `\n\nFORMULÄR (${data.forms.length} st):\n` + data.forms.map((form, i) => {
-      const fields = form.fields
-        .filter(f => f.type !== 'hidden')
-        .map(f => `  - ${f.name} (${f.type}${f.required ? ', obligatoriskt' : ''})`)
-        .join('\n');
-      return `Form ${i + 1}: "${form.submitText || 'Skicka'}"\n${fields || '  (inga synliga fält)'}`;
-    }).join('\n')
-    : '\n\nFORMULÄR: Inga formulär hittades på sidan.';
+  // Compact form info
+  const formsInfo = data.forms?.length
+    ? `\nForms(${data.forms.length}): ${data.forms.map(f => f.submitText || 'Skicka').join(', ')}`
+    : '\nForms: 0';
 
-  // Format buttons/CTAs
-  const buttonsInfo = data.buttons && data.buttons.length > 0
-    ? `\n\nKNAPPAR/CTAs: ${data.buttons.filter(b => b.trim()).slice(0, 10).join(', ')}`
-    : '';
+  // Compact buttons
+  const btns = data.buttons?.filter(b => b.trim()).slice(0, 5) || [];
+  const buttonsInfo = btns.length ? `\nCTAs: ${btns.join(', ')}` : '';
 
-  return `URL: ${data.url}\nTitel: ${data.title}\n\nINNEHÅLL:\n${content}${formsInfo}${buttonsInfo}`;
+  return `${data.url}\n${data.title}\n${content}${formsInfo}${buttonsInfo}`;
 }
 
 function calculateOverallScore(categories: AnalysisCategory[]): number {
