@@ -168,8 +168,25 @@ async function callAPI(apiKey: string, system: string, user: string): Promise<an
 }
 
 function formatScrapedDataForPrompt(data: ScrapedData): string {
-  const content = data.visibleText.substring(0, 6000);
-  return `URL: ${data.url}\nTitel: ${data.title}\nInnehåll:\n${content}`;
+  const content = data.visibleText.substring(0, 5000);
+
+  // Format forms for analysis
+  const formsInfo = data.forms && data.forms.length > 0
+    ? `\n\nFORMULÄR (${data.forms.length} st):\n` + data.forms.map((form, i) => {
+      const fields = form.fields
+        .filter(f => f.type !== 'hidden')
+        .map(f => `  - ${f.name} (${f.type}${f.required ? ', obligatoriskt' : ''})`)
+        .join('\n');
+      return `Form ${i + 1}: "${form.submitText || 'Skicka'}"\n${fields || '  (inga synliga fält)'}`;
+    }).join('\n')
+    : '\n\nFORMULÄR: Inga formulär hittades på sidan.';
+
+  // Format buttons/CTAs
+  const buttonsInfo = data.buttons && data.buttons.length > 0
+    ? `\n\nKNAPPAR/CTAs: ${data.buttons.filter(b => b.trim()).slice(0, 10).join(', ')}`
+    : '';
+
+  return `URL: ${data.url}\nTitel: ${data.title}\n\nINNEHÅLL:\n${content}${formsInfo}${buttonsInfo}`;
 }
 
 function calculateOverallScore(categories: AnalysisCategory[]): number {

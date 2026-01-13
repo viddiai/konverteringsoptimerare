@@ -60,28 +60,39 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
         return null;
     });
 
-    // Race both strategies - use whichever succeeds first
+    // Wait for both to complete - we need direct fetch for form data
     const results = await Promise.all([jinaPromise, directPromise]);
 
     // Clear timeouts
     clearTimeout(jinaTimeout);
     clearTimeout(directTimeout);
 
-    // Prefer Jina result if available (cleaner for AI), otherwise use direct
     const jinaResult = results[0];
     const directResult = results[1];
 
     let finalResult: ScrapedData | null = null;
 
-    if (jinaResult) {
-        console.log(`[Scraper] Using Jina result for ${normalizedUrl}`);
+    // Strategy: Use Jina for text content but merge form data from direct fetch
+    if (jinaResult && directResult) {
+        // Best case: merge Jina's clean text with direct fetch's structured data
+        console.log(`[Scraper] Merging Jina + direct fetch for ${normalizedUrl}`);
+        finalResult = {
+            ...jinaResult.data,
+            // Override with direct fetch's structured extraction (forms, buttons, links, images)
+            forms: directResult.data.forms,
+            buttons: directResult.data.buttons,
+            links: directResult.data.links,
+            images: directResult.data.images,
+            localLeaks: directResult.data.localLeaks,
+            // Keep Jina's cleaner text content
+            visibleText: jinaResult.data.visibleText,
+        };
+    } else if (jinaResult) {
+        console.log(`[Scraper] Using Jina result only for ${normalizedUrl}`);
         finalResult = jinaResult.data;
-        // Cancel the other fetch if still running
-        directController.abort();
     } else if (directResult) {
         console.log(`[Scraper] Using direct fetch result for ${normalizedUrl}`);
         finalResult = directResult.data;
-        jinaController.abort();
     }
 
     if (!finalResult) {
