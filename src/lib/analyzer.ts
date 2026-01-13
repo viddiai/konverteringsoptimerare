@@ -1,25 +1,132 @@
-import { ScrapedData, AnalysisResult, AnalysisCategory } from '@/types/analysis';
+import { ScrapedData, AnalysisResult, AnalysisCategory, AnalysisProblem } from '@/types/analysis';
 
 /**
- * TWO-PHASE Analysis V5.0 - Grok Edition
+ * TWO-PHASE Analysis V6.0 - Full Spec Implementation
  * Phase 1: Quick analysis (3 categories, <2s)
- * Phase 2: Full analysis (6 categories, detailed)
+ * Phase 2: Full analysis (10 categories with granular tags)
+ *
+ * Total weight: 11.5 according to specification
  */
 
 const CATEGORY_DEFINITIONS: Record<string, { name: string; icon: string; weight: number }> = {
   value_proposition: { name: 'Värdeerbjudande', icon: '💎', weight: 2.0 },
   call_to_action: { name: 'CTA & Knappar', icon: '🎯', weight: 1.5 },
-  social_proof: { name: 'Social Proof', icon: '⭐️', weight: 1.0 },
+  social_proof: { name: 'Social Proof', icon: '⭐', weight: 1.0 },
   lead_capture: { name: 'Leadfångst', icon: '🧲', weight: 1.5 },
-  trust_signals: { name: 'Förtroende', icon: '🛡️', weight: 1.0 },
-  content_clarity: { name: 'Innehåll', icon: '📝', weight: 1.0 }
+  form_design: { name: 'Formulärdesign', icon: '📝', weight: 1.0 },
+  guarantees: { name: 'Garantier', icon: '🛡️', weight: 1.0 },
+  urgency_scarcity: { name: 'Brådska & Knapphet', icon: '⏰', weight: 0.75 },
+  process_clarity: { name: 'Processklarhet', icon: '🗺️', weight: 1.0 },
+  content_architecture: { name: 'Innehållsarkitektur', icon: '🏗️', weight: 0.75 },
+  offer_structure: { name: 'Erbjudande', icon: '💰', weight: 1.0 }
 };
+// Total weight: 2.0 + 1.5 + 1.0 + 1.5 + 1.0 + 1.0 + 0.75 + 1.0 + 0.75 + 1.0 = 11.5
 
-// Quick prompt - only 3 most important categories
-const QUICK_PROMPT = `Analysera konvertering. Svara ENDAST med JSON: {"c":[{"id":"value_proposition","s":3,"st":"improvement","p":"kort problem"},{"id":"call_to_action","s":3,"st":"improvement","p":"kort problem"},{"id":"lead_capture","s":3,"st":"improvement","p":"kort problem"}]} där id är en av: value_proposition, call_to_action, lead_capture. s=poäng 1-5, st=critical|improvement|good, p=kort problembeskrivning på svenska.`;
+// Quick prompt - only 3 most important categories for instant feedback
+const QUICK_PROMPT = `Du analyserar svenska webbplatsers konverteringsförmåga. Svara ENDAST med JSON.
 
-// Full prompt - all 6 categories with recommendations
-const FULL_PROMPT = `Analysera konvertering. Svara ENDAST med JSON: {"c":[{"id":"value_proposition","s":3,"st":"improvement","p":"kort problem","r":"kort lösning"},...]} för alla 6 kategorier: value_proposition, call_to_action, social_proof, lead_capture, trust_signals, content_clarity. s=poäng 1-5, st=critical|improvement|good, p=problem, r=rekommendation. Svenska.`;
+Analysera dessa 3 kritiska kategorier:
+1. value_proposition (vikt: 2.0) - Värdeerbjudande
+2. call_to_action (vikt: 1.5) - CTA & Knappar
+3. lead_capture (vikt: 1.5) - Leadfångst
+
+Poängskala 1-5:
+- 1-2 = critical (allvarliga brister)
+- 3 = improvement (förbättringspotential)
+- 4-5 = good (fungerar bra)
+
+Svara med:
+{"c":[{"id":"value_proposition","s":3,"st":"improvement","p":"kort problembeskrivning"},{"id":"call_to_action","s":3,"st":"improvement","p":"kort problembeskrivning"},{"id":"lead_capture","s":3,"st":"improvement","p":"kort problembeskrivning"}]}
+
+Endast JSON, inget annat.`;
+
+// Full detailed prompt based on specification
+const FULL_PROMPT = `Du är expert på konverteringsoptimering för svenska B2B/B2C-webbplatser. Din uppgift är att identifiera "läckande trattar" – problem som gör att potentiella kunder lämnar utan att ta kontakt.
+
+## ANALYSERA EXAKT DESSA 10 KATEGORIER:
+
+### 1. value_proposition (vikt: 2.0) - Värdeerbjudande
+Letar efter: Tydlig H1, fokus på FÖRDELAR (inte bara egenskaper), förståeligt inom 5 sek, differentiering, bevis.
+Problem-tags: unclear_headline, features_not_benefits, missing_usp, value_prop_too_complex, no_proof_points
+Poäng: 1=rubrik förklarar inte vad de gör, 2=fokus på egenskaper, 3=saknar differentiering, 4=bra men saknar bevis, 5=kristallklart
+
+### 2. call_to_action (vikt: 1.5) - CTA & Knappar
+Letar efter: Tydliga CTA-knappar, synlig ovanför fold, handlingsorienterat språk (EJ "Skicka"), visuell kontrast.
+Problem-tags: no_cta_found, cta_below_fold, generic_cta_text, low_contrast_cta, single_cta_placement
+Poäng: 1=ingen CTA, 2=generisk text/"Skicka", 3=dålig placering, 4=bra men kan förstärkas, 5=optimal
+
+### 3. social_proof (vikt: 1.0) - Social Proof & Trovärdighet
+Letar efter: Kundrecensioner med namn, kundlogotyper, siffror ("500+ kunder"), tredjepartsvalidering.
+Problem-tags: no_social_proof, no_testimonials, anonymous_testimonials, no_client_logos, no_quantitative_proof
+Poäng: 1=ingen social proof, 2=anonym/gömd, 3=finns men ej strategisk, 4=flera typer, 5=omfattande
+
+### 4. lead_capture (vikt: 1.5) - Leadfångst & Leadmagnets
+Letar efter: Leadmagnet (guide, checklista), tydligt värde, få formulärfält, synlig placering.
+KRITISKT: Identifiera mailto:-länkar och öppna PDF:er utan registrering!
+Problem-tags: no_lead_magnet, mailto_link_leak, open_pdf_leak, weak_lead_magnet_value, lead_magnet_hidden
+Poäng: 1=ingen leadmagnet, 2=mailto-läckor/öppna PDF:er, 3=svår att hitta, 4=bra men för många fält, 5=oemotståndlig
+
+### 5. form_design (vikt: 1.0) - Formulärdesign
+Letar efter: Minimalt antal fält, tydliga etiketter, handlingsorienterad knapp, visuellt rent.
+Problem-tags: too_many_form_fields, generic_submit_button, unclear_field_labels, captcha_friction
+Poäng: 1=många onödiga fält, 2=generisk knapp, 3=saknar optimering, 4=strömlinjeformat, 5=friktionsfritt
+
+### 6. guarantees (vikt: 1.0) - Garantier & Riskminimering
+Letar efter: Nöjdhetsgaranti/pengarna tillbaka, synligt placerad, modig formulering, enkla villkor.
+Problem-tags: no_guarantee, guarantee_hidden, guarantee_short_duration, guarantee_weak_language
+Poäng: 1=ingen garanti, 2=gömd/komplicerad, 3=synlig men ej optimal, 4=stark och generös, 5=modig och motiverad
+
+### 7. urgency_scarcity (vikt: 0.75) - Brådska & Knapphet
+Letar efter: Tidsbegränsade erbjudanden, begränsad kvantitet, autentisk brådska.
+OBS: Ofta neutral (3/5) för tjänsteföretag om det inte finns naturlig urgency.
+Problem-tags: no_urgency_elements (neutral), fake_urgency, missed_urgency_opportunity
+Poäng: 2=fabricerad urgency, 3=inga element (NEUTRAL), 4=autentisk, 5=strategisk och trovärdig
+
+### 8. process_clarity (vikt: 1.0) - Processklarhet
+Letar efter: Förklaring av vad som händer efter kontakt, steg-för-steg, tidsförväntningar ("Svar inom 24h").
+Problem-tags: no_process_explanation, no_next_step_info, no_timeline_info, contact_info_hidden
+Poäng: 1=ingen processinfo, 2=vag/ofullständig, 3=grundläggande, 4=tydlig med tidsramar, 5=komplett future-pacing
+
+### 9. content_architecture (vikt: 0.75) - Innehållsarkitektur
+Letar efter: Logisk struktur, skannbarhet (rubriker, korta stycken), visuell hierarki.
+Problem-tags: poor_content_structure, wall_of_text, no_visual_hierarchy, content_overwhelming
+Poäng: 1=kaotisk/wall of text, 2=svårt att hitta info, 3=rimlig struktur, 4=bra hierarki, 5=optimal
+
+### 10. offer_structure (vikt: 1.0) - Erbjudande
+Letar efter: Lågt tröskel första steg (gratis konsultation), transparent prissättning, segmenterade alternativ.
+Problem-tags: no_low_barrier_entry, pricing_not_transparent, single_offering, no_premiums
+Poäng: 1=hög tröskel/otydligt, 2=ej optimerat, 3=kan förbättras, 4=bra med låg tröskel, 5=no-brainer erbjudande
+
+## OUTPUT FORMAT (ENDAST JSON):
+{
+  "c": [
+    {
+      "id": "value_proposition",
+      "s": 3,
+      "st": "improvement",
+      "p": [{
+        "t": "features_not_benefits",
+        "sv": "medium",
+        "d": "Problembeskrivning på svenska",
+        "r": "Konkret rekommendation",
+        "e": "Hittade: 'Välkommen till vår webbplats'"
+      }]
+    }
+  ]
+}
+
+Fält:
+- id: kategori-id
+- s: poäng 1-5
+- st: critical|improvement|good|neutral
+- p: array av problem (kan vara tom om score 4-5)
+- t: problem-tag
+- sv: severity (high|medium|low)
+- d: description (svenska)
+- r: recommendation (svenska)
+- e: evidence (vad du hittade på sidan, kan vara null)
+
+Svara ENDAST med JSON, inget annat.`;
 
 export interface QuickAnalysisResult {
   score: number;
@@ -27,14 +134,14 @@ export interface QuickAnalysisResult {
 }
 
 /**
- * QUICK Analysis - Phase 1 (mål: <2 sekunder)
+ * QUICK Analysis - Phase 1 (mål: <3 sekunder)
  * Analyzes only 3 key categories for instant feedback
  */
 export async function analyzeQuick(scrapedData: ScrapedData): Promise<QuickAnalysisResult> {
   const apiKey = process.env.XAI_API_KEY;
   if (!apiKey) throw new Error('XAI_API_KEY is not configured');
 
-  const userPrompt = `${scrapedData.url}\n${scrapedData.title}\n${scrapedData.visibleText.substring(0, 300)}`;
+  const userPrompt = formatQuickPrompt(scrapedData);
 
   try {
     const res = await callGrokQuick(apiKey, QUICK_PROMPT, userPrompt);
@@ -70,12 +177,20 @@ export async function analyzeQuick(scrapedData: ScrapedData): Promise<QuickAnaly
   }
 }
 
+function formatQuickPrompt(data: ScrapedData): string {
+  return `URL: ${data.url}
+Titel: ${data.title}
+H1: ${data.h1.join(', ')}
+Beskrivning: ${data.metaDescription}
+Text: ${data.visibleText.substring(0, 500)}`;
+}
+
 /**
  * Quick Grok API call with shorter timeout
  */
 async function callGrokQuick(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout for quick
+  const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout for quick
 
   try {
     console.log("Calling Grok API (quick)...");
@@ -94,7 +209,7 @@ async function callGrokQuick(apiKey: string, system: string, user: string): Prom
           { role: 'user', content: user }
         ],
         temperature: 0.1,
-        max_tokens: 400
+        max_tokens: 500
       }),
       signal: controller.signal
     });
@@ -112,7 +227,6 @@ async function callGrokQuick(apiKey: string, system: string, user: string): Prom
     const content = data.choices?.[0]?.message?.content;
     if (!content) return { c: [] };
 
-    // Extract JSON from response (Grok might include markdown)
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { c: [] };
 
@@ -124,32 +238,27 @@ async function callGrokQuick(apiKey: string, system: string, user: string): Prom
   }
 }
 
+/**
+ * FULL Analysis - Phase 2 (all 10 categories)
+ * Streams results as they become available
+ */
 export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGenerator<any> {
   const apiKey = process.env.XAI_API_KEY;
   if (!apiKey) throw new Error('XAI_API_KEY is not configured');
 
-  const userPrompt = formatPrompt(scrapedData);
+  const userPrompt = formatFullPrompt(scrapedData);
 
   yield { type: 'metadata', data: { url: scrapedData.url, analyzed_at: new Date().toISOString() } };
 
   try {
-    // FULL API CALL - all 6 categories
+    // FULL API CALL - all 10 categories
     const res = await callGrok(apiKey, FULL_PROMPT, userPrompt);
 
-    const categories = (res.c || []).map((cat: any) => {
-      const def = CATEGORY_DEFINITIONS[cat.id] || { name: cat.id, icon: '❓', weight: 1.0 };
-      return {
-        id: cat.id,
-        ...def,
-        score: cat.s || 3,
-        status: cat.st || 'improvement',
-        problems: cat.p ? [{ description: cat.p, recommendation: cat.r || '' }] : []
-      };
-    });
+    const categories = parseCategories(res, scrapedData);
 
     yield { type: 'categories', data: categories };
 
-    // Generate summary LOCALLY (no API call needed!)
+    // Generate summary locally
     const summary = generateLocalSummary(categories, scrapedData);
     yield { type: 'summary', data: summary };
 
@@ -160,33 +269,138 @@ export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGene
   }
 }
 
-function generateLocalSummary(categories: any[], scrapedData: ScrapedData) {
-  const avgScore = categories.reduce((sum, c) => sum + (c.score || 3), 0) / (categories.length || 1);
+function formatFullPrompt(data: ScrapedData): string {
+  // Include more data for full analysis
+  const leaks = data.localLeaks.map(l => `${l.type}: ${l.details}`).join('\n');
+  const forms = data.forms.map(f => `Formulär: ${f.fields.length} fält, knapp: "${f.submitText}"`).join('\n');
+  const buttons = data.buttons.slice(0, 10).join(', ');
+
+  return `URL: ${data.url}
+Titel: ${data.title}
+H1-rubriker: ${data.h1.join(', ')}
+Meta-beskrivning: ${data.metaDescription}
+
+FORMULÄR:
+${forms || 'Inga formulär hittade'}
+
+KNAPPAR: ${buttons || 'Inga knappar'}
+
+LOKALT DETEKTERADE LÄCKOR:
+${leaks || 'Inga mailto/PDF-läckor hittade'}
+
+SYNLIG TEXT (första 2000 tecken):
+${data.visibleText.substring(0, 2000)}`;
+}
+
+function parseCategories(res: any, scrapedData: ScrapedData): AnalysisCategory[] {
+  const categories: AnalysisCategory[] = [];
+
+  for (const cat of (res.c || [])) {
+    const def = CATEGORY_DEFINITIONS[cat.id];
+    if (!def) continue;
+
+    // Parse problems array
+    const problems: AnalysisProblem[] = [];
+    const rawProblems = Array.isArray(cat.p) ? cat.p : (cat.p ? [cat.p] : []);
+
+    for (const prob of rawProblems) {
+      if (typeof prob === 'string') {
+        // Simple string problem (backwards compatibility)
+        problems.push({
+          description: prob,
+          recommendation: cat.r || ''
+        });
+      } else if (typeof prob === 'object') {
+        // Full problem object
+        problems.push({
+          tag: prob.t || undefined,
+          severity: prob.sv || undefined,
+          description: prob.d || prob.description || '',
+          recommendation: prob.r || prob.recommendation || '',
+          evidence: prob.e || prob.evidence || null
+        });
+      }
+    }
+
+    categories.push({
+      id: cat.id,
+      name: def.name,
+      icon: def.icon,
+      weight: def.weight,
+      weighted_score: (cat.s || 3) * def.weight,
+      score: cat.s || 3,
+      status: cat.st || 'improvement',
+      problems
+    });
+  }
+
+  // Ensure all 10 categories exist (add missing ones with neutral score)
+  for (const [id, def] of Object.entries(CATEGORY_DEFINITIONS)) {
+    if (!categories.find(c => c.id === id)) {
+      categories.push({
+        id,
+        name: def.name,
+        icon: def.icon,
+        weight: def.weight,
+        weighted_score: 3 * def.weight,
+        score: 3,
+        status: 'not_identified',
+        problems: [{
+          description: `Kunde inte analysera ${def.name.toLowerCase()}`,
+          recommendation: `Se över ${def.name.toLowerCase()} manuellt`
+        }]
+      });
+    }
+  }
+
+  // Sort by weight (highest first)
+  return categories.sort((a, b) => b.weight - a.weight);
+}
+
+function generateLocalSummary(categories: AnalysisCategory[], scrapedData: ScrapedData) {
+  // Calculate weighted score
+  const totalWeight = categories.reduce((sum, c) => sum + c.weight, 0);
+  const weightedSum = categories.reduce((sum, c) => sum + (c.score * c.weight), 0);
+  const avgScore = totalWeight > 0 ? weightedSum / totalWeight : 3;
+
   const critical = categories.filter(c => c.status === 'critical');
   const good = categories.filter(c => c.status === 'good');
 
   // Generate strengths from good categories
-  const strengths = good.slice(0, 3).map(c => `${c.name} är bra`);
-  if (strengths.length === 0) strengths.push('Webbplatsen fungerar tekniskt');
+  const strengths = good.slice(0, 3).map(c => `${c.name} fungerar bra`);
+  if (strengths.length === 0 && avgScore >= 3) {
+    strengths.push('Webbplatsen har grunderna på plats');
+  }
 
-  // Generate action list from problems
+  // Generate action list from problems (sorted by severity and weight)
   const action_list = categories
-    .filter(c => c.problems?.length > 0)
-    .slice(0, 5)
+    .filter(c => c.problems?.length > 0 && c.status !== 'good')
+    .sort((a, b) => {
+      // Critical first, then by weight
+      if (a.status === 'critical' && b.status !== 'critical') return -1;
+      if (b.status === 'critical' && a.status !== 'critical') return 1;
+      return b.weight - a.weight;
+    })
+    .slice(0, 6)
     .map(c => ({
-      priority: c.status === 'critical' ? 'critical' : 'important',
+      priority: c.status === 'critical' ? 'critical' as const : 'important' as const,
       action: c.problems[0]?.recommendation || `Förbättra ${c.name}`,
-      category_id: c.id
+      category_id: c.id,
+      impact: c.weight >= 1.5 ? 'high' as const : c.weight >= 1.0 ? 'medium' as const : 'low' as const
     }));
 
-  // Generate summary
+  // Generate summary based on score using spec templates
   let overall_summary = '';
-  if (avgScore < 2.5) {
-    overall_summary = `Webbplatsen har ${critical.length} kritiska problem som måste åtgärdas. Fokusera på värdeerbjudande och CTA.`;
+  if (avgScore < 2) {
+    overall_summary = `Din webbplats har allvarliga brister som kraftigt hindrar konvertering. Vi har identifierat ${critical.length} kritiska problem som behöver åtgärdas omedelbart.`;
+  } else if (avgScore < 3) {
+    overall_summary = `Din webbplats har grunderna på plats men läcker leads på flera kritiska ställen. Vi har identifierat ${critical.length} problem som, om de åtgärdas, kan öka din konvertering markant.`;
   } else if (avgScore < 3.5) {
-    overall_summary = `Webbplatsen har förbättringspotential. ${critical.length > 0 ? `${critical.length} kritiska områden.` : 'Inga kritiska fel.'}`;
+    overall_summary = `Din webbplats fungerar men har tydlig förbättringspotential. Med ${action_list.length} strategiska förbättringar kan du öka din konvertering betydligt.`;
+  } else if (avgScore < 4.5) {
+    overall_summary = `Din webbplats är väl optimerad för konvertering. Vi har hittat ${action_list.length} förbättringsmöjligheter som kan ta den till nästa nivå.`;
   } else {
-    overall_summary = `Webbplatsen presterar bra. ${good.length} områden är starka. Finjustera detaljerna för ännu bättre resultat.`;
+    overall_summary = `Imponerande! Din webbplats är optimerad för konvertering på de flesta områden. Fortsätt det goda arbetet!`;
   }
 
   return {
@@ -199,10 +413,10 @@ function generateLocalSummary(categories: any[], scrapedData: ScrapedData) {
 
 async function callGrok(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
+  const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout for full analysis
 
   try {
-    console.log("Calling Grok API (full)...");
+    console.log("Calling Grok API (full, 10 categories)...");
     console.log("System prompt length:", system.length);
     console.log("User prompt length:", user.length);
     const startTime = Date.now();
@@ -220,7 +434,7 @@ async function callGrok(apiKey: string, system: string, user: string): Promise<a
           { role: 'user', content: user }
         ],
         temperature: 0.1,
-        max_tokens: 800
+        max_tokens: 3000  // More tokens for 10 categories
       }),
       signal: controller.signal
     });
@@ -241,14 +455,14 @@ async function callGrok(apiKey: string, system: string, user: string): Promise<a
       return { c: [] };
     }
 
-    // Extract JSON from response (Grok might include markdown)
+    // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("No JSON found in Grok response:", content.substring(0, 200));
+      console.error("No JSON found in Grok response:", content.substring(0, 300));
       return { c: [] };
     }
 
-    console.log("Grok success, parsing JSON:", jsonMatch[0].substring(0, 200));
+    console.log("Grok success, parsing JSON:", jsonMatch[0].substring(0, 300));
     const parsed = JSON.parse(jsonMatch[0]);
     console.log("Parsed categories count:", parsed.c?.length || 0);
     return parsed;
@@ -257,12 +471,6 @@ async function callGrok(apiKey: string, system: string, user: string): Promise<a
     console.error("Grok API failed:", e instanceof Error ? e.message : e);
     return { c: [] };
   }
-}
-
-function formatPrompt(data: ScrapedData): string {
-  // Minimal content for speed
-  const text = data.visibleText.substring(0, 1000);
-  return `${data.url}\n${data.title}\n${text}`;
 }
 
 // Fallback for non-streaming
@@ -277,7 +485,7 @@ export async function analyzeWebsite(scrapedData: ScrapedData): Promise<Analysis
   const allCategories = results.filter(r => r.type === 'categories').flatMap(r => r.data);
   const summaryData = results.find(r => r.type === 'summary')?.data;
 
-  const categories: AnalysisCategory[] = allCategories.map(cat => ({
+  const categories: AnalysisCategory[] = allCategories.map((cat: any) => ({
     ...cat,
     score: cat.score || 3,
     status: cat.status || 'not_identified',

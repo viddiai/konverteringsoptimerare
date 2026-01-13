@@ -239,6 +239,21 @@ export default function Home() {
                 return <span className="px-2 py-1 text-xs rounded-full bg-yellow-500/20 text-yellow-400">Förbättra</span>;
             case 'good':
                 return <span className="px-2 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400">Bra</span>;
+            case 'neutral':
+                return <span className="px-2 py-1 text-xs rounded-full bg-white/10 text-white/50">Neutral</span>;
+            default:
+                return null;
+        }
+    };
+
+    const getSeverityBadge = (severity?: string) => {
+        switch (severity) {
+            case 'high':
+                return <span className="px-2 py-0.5 text-xs rounded bg-red-500/30 text-red-300">Hög</span>;
+            case 'medium':
+                return <span className="px-2 py-0.5 text-xs rounded bg-yellow-500/30 text-yellow-300">Medel</span>;
+            case 'low':
+                return <span className="px-2 py-0.5 text-xs rounded bg-blue-500/30 text-blue-300">Låg</span>;
             default:
                 return null;
         }
@@ -594,7 +609,7 @@ export default function Home() {
                             </li>
                             <li className="flex items-center gap-3">
                                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                <span className="text-white/80">Alla 6 analyserade områden</span>
+                                <span className="text-white/80">Alla 10 analyserade områden</span>
                             </li>
                             <li className="flex items-center gap-3">
                                 <CheckCircle2 className="w-5 h-5 text-emerald-500" />
@@ -745,7 +760,14 @@ export default function Home() {
                                         </div>
                                         {category.problems.map((problem, i) => (
                                             <div key={i} className="bg-black/30 rounded-xl p-4 mb-3">
-                                                <p className="text-white/70 mb-3"><strong className="text-white">Problem:</strong> {problem.description}</p>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {problem.severity && getSeverityBadge(problem.severity)}
+                                                    {problem.tag && <span className="text-xs text-white/40 font-mono">{problem.tag}</span>}
+                                                </div>
+                                                <p className="text-white/70 mb-2"><strong className="text-white">Problem:</strong> {problem.description}</p>
+                                                {problem.evidence && (
+                                                    <p className="text-white/50 text-sm mb-2 italic">📍 {problem.evidence}</p>
+                                                )}
                                                 <p className="text-emerald-400"><strong>Rekommendation:</strong> {problem.recommendation}</p>
                                             </div>
                                         ))}
@@ -774,7 +796,14 @@ export default function Home() {
                                         <div className="px-6 pb-6">
                                             {category.problems.map((problem, i) => (
                                                 <div key={i} className="bg-black/30 rounded-xl p-4 mb-3">
-                                                    <p className="text-white/70 mb-3"><strong className="text-white">Problem:</strong> {problem.description}</p>
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        {problem.severity && getSeverityBadge(problem.severity)}
+                                                        {problem.tag && <span className="text-xs text-white/40 font-mono">{problem.tag}</span>}
+                                                    </div>
+                                                    <p className="text-white/70 mb-2"><strong className="text-white">Problem:</strong> {problem.description}</p>
+                                                    {problem.evidence && (
+                                                        <p className="text-white/50 text-sm mb-2 italic">📍 {problem.evidence}</p>
+                                                    )}
                                                     <p className="text-emerald-400"><strong>Rekommendation:</strong> {problem.recommendation}</p>
                                                 </div>
                                             ))}

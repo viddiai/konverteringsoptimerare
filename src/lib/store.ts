@@ -21,11 +21,13 @@ export function storeAnalysis(
     email: string,
     firstName: string
 ): StoredAnalysis {
-    // Extract all problem tags from categories
+    // Extract all problem tags from categories (filter out undefined)
     const problemTags: string[] = [];
     for (const category of analysis.categories) {
         for (const problem of category.problems) {
-            problemTags.push(problem.tag);
+            if (problem.tag) {
+                problemTags.push(problem.tag);
+            }
         }
     }
 

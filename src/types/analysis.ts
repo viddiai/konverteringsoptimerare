@@ -3,11 +3,11 @@
  */
 
 export interface AnalysisProblem {
-    tag: string;
-    severity: 'high' | 'medium' | 'low';
+    tag?: string;  // Granulär problem-tag, t.ex. "no_social_proof"
+    severity?: 'high' | 'medium' | 'low';
     description: string;
     recommendation: string;
-    evidence: string | null;
+    evidence?: string | null;  // Konkret bevis från webbplatsen
 }
 
 export interface AnalysisCategory {
