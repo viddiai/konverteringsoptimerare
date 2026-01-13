@@ -1,112 +1,75 @@
 import { ScrapedData } from '@/types/analysis';
 
-// Simple in-memory cache for scraped URLs (survives during server uptime)
+// Cache for instant responses on repeated URLs
 const scrapeCache = new Map<string, { data: ScrapedData; timestamp: number }>();
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
- * Scrapes website content for analysis
- * Uses parallel fetching strategy: Jina Reader and direct fetch race against each other
+ * ULTRA-FAST Scraper V2.0
+ * Uses Promise.race - returns first successful result
  */
 export async function scrapeWebsite(url: string): Promise<ScrapedData> {
-    // Normalize URL
     let normalizedUrl = url.trim();
     if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
         normalizedUrl = 'https://' + normalizedUrl;
     }
 
-    // Check cache first
+    // Cache hit = instant return
     const cacheKey = normalizedUrl.toLowerCase();
     const cached = scrapeCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
-        console.log(`[Scraper] Cache hit for ${normalizedUrl}`);
         return cached.data;
     }
 
-    // Create abort controllers with different timeouts
-    const jinaController = new AbortController();
-    const directController = new AbortController();
-    const jinaTimeout = setTimeout(() => jinaController.abort(), 5000);  // 5s for Jina
-    const directTimeout = setTimeout(() => directController.abort(), 6000); // 6s for direct
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000); // 4s max!
 
-    // Jina Reader fetch (returns clean markdown, faster for AI)
-    const jinaPromise = fetch(`https://r.jina.ai/${normalizedUrl}`, {
-        headers: { 'Accept': 'text/plain' },
-        signal: jinaController.signal
-    }).then(async (res) => {
-        if (!res.ok) throw new Error(`Jina returned ${res.status}`);
-        const markdown = await res.text();
-        return { source: 'jina' as const, data: parseJinaMarkdown(markdown, normalizedUrl) };
-    }).catch((e) => {
-        console.warn("[Scraper] Jina failed:", e.message);
-        return null;
-    });
-
-    // Direct fetch (fallback, more reliable but needs HTML parsing)
+    // RACE: First one to succeed wins!
     const directPromise = fetch(normalizedUrl, {
-        signal: directController.signal,
+        signal: controller.signal,
         headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; ConversionAnalyzer/1.0)',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Language': 'sv-SE,sv;q=0.9,en;q=0.8',
+            'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)',
+            'Accept': 'text/html',
         },
         redirect: 'follow',
     }).then(async (res) => {
-        if (!res.ok) throw new Error(`Direct fetch returned ${res.status}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const html = await res.text();
-        return { source: 'direct' as const, data: parseHtml(html, normalizedUrl) };
-    }).catch((e) => {
-        console.warn("[Scraper] Direct fetch failed:", e.message);
-        return null;
+        clearTimeout(timeout);
+        return parseHtml(html, normalizedUrl);
     });
 
-    // Wait for both to complete - we need direct fetch for form data
-    const results = await Promise.all([jinaPromise, directPromise]);
+    // Jina as backup (often slower)
+    const jinaPromise = fetch(`https://r.jina.ai/${normalizedUrl}`, {
+        headers: { 'Accept': 'text/plain' },
+        signal: controller.signal
+    }).then(async (res) => {
+        if (!res.ok) throw new Error(`Jina ${res.status}`);
+        const md = await res.text();
+        clearTimeout(timeout);
+        return parseJinaMarkdown(md, normalizedUrl);
+    });
 
-    // Clear timeouts
-    clearTimeout(jinaTimeout);
-    clearTimeout(directTimeout);
-
-    const jinaResult = results[0];
-    const directResult = results[1];
-
-    let finalResult: ScrapedData | null = null;
-
-    // Strategy: Use Jina for text content but merge form data from direct fetch
-    if (jinaResult && directResult) {
-        // Best case: merge Jina's clean text with direct fetch's structured data
-        console.log(`[Scraper] Merging Jina + direct fetch for ${normalizedUrl}`);
-        finalResult = {
-            ...jinaResult.data,
-            // Override with direct fetch's structured extraction (forms, buttons, links, images)
-            forms: directResult.data.forms,
-            buttons: directResult.data.buttons,
-            links: directResult.data.links,
-            images: directResult.data.images,
-            localLeaks: directResult.data.localLeaks,
-            // Keep Jina's cleaner text content
-            visibleText: jinaResult.data.visibleText,
-        };
-    } else if (jinaResult) {
-        console.log(`[Scraper] Using Jina result only for ${normalizedUrl}`);
-        finalResult = jinaResult.data;
-    } else if (directResult) {
-        console.log(`[Scraper] Using direct fetch result for ${normalizedUrl}`);
-        finalResult = directResult.data;
+    try {
+        // Return whichever finishes first!
+        const result = await Promise.race([directPromise, jinaPromise]);
+        scrapeCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        return result;
+    } catch (e) {
+        clearTimeout(timeout);
+        // If race failed, try waiting for either
+        try {
+            const fallback = await Promise.any([directPromise, jinaPromise]);
+            scrapeCache.set(cacheKey, { data: fallback, timestamp: Date.now() });
+            return fallback;
+        } catch {
+            throw new Error(`Kunde inte hämta ${normalizedUrl}`);
+        }
     }
-
-    if (!finalResult) {
-        throw new Error(`Failed to fetch ${normalizedUrl}: both Jina and direct fetch failed`);
-    }
-
-    // Store in cache
-    scrapeCache.set(cacheKey, { data: finalResult, timestamp: Date.now() });
-
-    return finalResult;
 }
 
 /**
- * Parse Jina Reader markdown output
+ * Parse Jina markdown (compact)
  */
 function parseJinaMarkdown(markdown: string, url: string): ScrapedData {
     // Extract title from markdown
