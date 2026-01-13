@@ -352,31 +352,14 @@ export default function Home() {
                                             name="email"
                                             placeholder="Din e-postadress"
                                             required
-                                            style={{
-                                                flex: 1,
-                                                padding: '12px 16px',
-                                                backgroundColor: '#f3f4f6',
-                                                border: '2px solid #d1d5db',
-                                                borderRadius: '8px',
-                                                color: '#111827',
-                                                fontSize: '16px',
-                                            }}
+                                            className="guide-form-input"
                                         />
                                         <input type="hidden" name="_subject" value="Ny guide-nedladdning från Konverteramera" />
                                         <input type="hidden" name="_next" value="https://konverteramera.netlify.app/tack" />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
-                                            style={{
-                                                padding: '12px 24px',
-                                                backgroundColor: '#10b981',
-                                                color: 'white',
-                                                fontWeight: 500,
-                                                borderRadius: '8px',
-                                                border: 'none',
-                                                cursor: 'pointer',
-                                                whiteSpace: 'nowrap',
-                                            }}
+                                            className="guide-form-button"
                                         >
                                             Hämta guiden
                                         </button>

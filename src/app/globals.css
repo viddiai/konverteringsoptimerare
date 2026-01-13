@@ -44,3 +44,33 @@ body {
     mask-image: radial-gradient(circle at center, black 40%, transparent 100%);
   }
 }
+
+/* Guide form input styling - explicit to override any defaults */
+.guide-form-input {
+  flex: 1;
+  padding: 12px 16px !important;
+  background-color: #f3f4f6 !important;
+  border: 2px solid #d1d5db !important;
+  border-radius: 8px !important;
+  color: #111827 !important;
+  font-size: 16px !important;
+}
+
+.guide-form-input::placeholder {
+  color: #6b7280 !important;
+}
+
+.guide-form-button {
+  padding: 12px 24px !important;
+  background-color: #10b981 !important;
+  color: white !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  border: none !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+}
+
+.guide-form-button:hover {
+  background-color: #059669 !important;
+}
