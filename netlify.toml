@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Next.js requires the Netlify Next.js runtime
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Environment variables (set these in Netlify dashboard)
+# OPENAI_API_KEY = "your-key-here"
