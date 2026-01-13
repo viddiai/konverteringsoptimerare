@@ -279,6 +279,97 @@ export default function Home() {
                                 <p className="text-neutral-400 text-sm">Prioriterad lista med förbättringar du kan göra idag</p>
                             </div>
                         </div>
+
+                        {/* Guide Section */}
+                        <div id="guide" className="mt-20 bg-white rounded-3xl p-8 md:p-12 shadow-2xl">
+                            <div className="flex flex-col md:flex-row gap-8 items-center">
+                                {/* Book Cover */}
+                                <div className="w-full md:w-1/3 flex-shrink-0">
+                                    <div className="bg-black rounded-2xl p-8 text-center">
+                                        <div className="text-emerald-400 text-4xl mb-4">◆</div>
+                                        <h4 className="text-white font-bold text-lg mb-2">7 beprövade sätt att öka konverteringen och vinna fler affärer</h4>
+                                        <p className="text-gray-400 text-sm">En strategisk guide för VD:ar och säljchefer på medelstora svenska företag</p>
+                                        <div className="mt-6 flex justify-center">
+                                            <div className="w-16 h-16">
+                                                <svg viewBox="0 0 100 100" className="w-full h-full">
+                                                    <polygon points="50,10 90,90 10,90" fill="#2DD4BF" opacity="0.8"/>
+                                                    <polygon points="50,30 75,80 25,80" fill="#F472B6" opacity="0.6"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Guide Content */}
+                                <div className="flex-1">
+                                    <h3 className="text-3xl font-bold text-gray-900 mb-4">7 beprövade sätt att öka konverteringen och vinna fler affärer</h3>
+                                    <p className="font-semibold text-gray-800 mb-2">Denna guide ger dig</p>
+                                    <p className="text-gray-600 mb-4">Konkreta verktyg för att:</p>
+                                    <ul className="space-y-2 text-gray-700 mb-6 text-sm">
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Formulera ett värdeerbjudande som faktiskt övertygar svenska beslutsfattare</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Fånga upp potentiella kunder innan de är redo att köpa</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Eliminera friktion som dödar affärer</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Bygga systematiskt förtroende genom sociala bevis</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Skapa handlingsdriven kommunikation som leder till avslut</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Strukturera komplex information utan att överväldiga</span>
+                                        </li>
+                                        <li className="flex items-start gap-2">
+                                            <span className="text-gray-400 mt-0.5">•</span>
+                                            <span>Använda avancerade strategier för dramatisk tillväxt</span>
+                                        </li>
+                                    </ul>
+                                    <div className="flex items-start gap-2 text-gray-600 mb-6">
+                                        <span className="text-yellow-500">💡</span>
+                                        <span className="text-sm">
+                                            Kom ihåg: Varje kapitel avslutas med "3 saker du kan göra imorgon" – konkreta åtgärder som ger omedelbar effekt.
+                                        </span>
+                                    </div>
+                                    <form
+                                        id="guide-form"
+                                        action="https://formspree.io/f/mzddpzqo"
+                                        method="POST"
+                                        className="flex flex-col sm:flex-row gap-4"
+                                    >
+                                        <input
+                                            type="email"
+                                            name="email"
+                                            placeholder="Din e-postadress"
+                                            required
+                                            className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder-gray-500"
+                                        />
+                                        <input type="hidden" name="_subject" value="Ny guide-nedladdning från Konverteramera" />
+                                        <input type="hidden" name="_next" value="https://konverteramera.netlify.app/?guide=thanks" />
+                                        <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
+                                        <button
+                                            type="submit"
+                                            className="px-6 py-3 bg-emerald-500 text-white font-medium rounded-lg hover:bg-emerald-600 transition-colors whitespace-nowrap"
+                                        >
+                                            Hämta guiden
+                                        </button>
+                                    </form>
+                                    <p className="mt-4 text-xs text-gray-400">
+                                        Vi behandlar dina uppgifter enligt vår integritetspolicy.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
