@@ -355,7 +355,7 @@ export default function Home() {
                                             className="flex-1 px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-gray-900 placeholder-gray-500"
                                         />
                                         <input type="hidden" name="_subject" value="Ny guide-nedladdning från Konverteramera" />
-                                        <input type="hidden" name="_next" value="https://konverteramera.netlify.app/?guide=thanks" />
+                                        <input type="hidden" name="_next" value="https://konverteramera.netlify.app/tack" />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
