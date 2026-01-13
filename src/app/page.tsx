@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Loader2, AlertCircle, CheckCircle2, Target, Users, Zap } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Search, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { AnalysisResult } from '@/types/analysis';
 
 type AppState = 'input' | 'loading' | 'teaser' | 'registration' | 'report';
 
-// Loading tips from the specification
 const LOADING_TIPS = [
     "96% av besökare som kommer till din webbplats är inte redo att köpa. Utan en lead magnet förlorar du dem för alltid.",
     "En CTA-knapp med 'Skicka' konverterar upp till 30% sämre än handlingsorienterat språk som 'Få din kostnadsfria offert'.",
@@ -18,6 +17,32 @@ const LOADING_TIPS = [
     "Social proof nära din CTA kan öka klickfrekvensen med upp till 34%.",
 ];
 
+// Scroll animation hook
+function useScrollAnimation() {
+    const ref = useRef<HTMLDivElement>(null);
+    const [isVisible, setIsVisible] = useState(false);
+
+    useEffect(() => {
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    setIsVisible(true);
+                    observer.unobserve(entry.target);
+                }
+            },
+            { threshold: 0.1 }
+        );
+
+        if (ref.current) {
+            observer.observe(ref.current);
+        }
+
+        return () => observer.disconnect();
+    }, []);
+
+    return { ref, isVisible };
+}
+
 export default function Home() {
     const [url, setUrl] = useState('');
     const [appState, setAppState] = useState<AppState>('input');
@@ -28,6 +53,12 @@ export default function Home() {
     const [firstName, setFirstName] = useState('');
     const [isDownloadingPdf, setIsDownloadingPdf] = useState(false);
     const [progressMessage, setProgressMessage] = useState<string>('Startar...');
+    const [quickResult, setQuickResult] = useState<{ score: number; problems: Array<{ category: string; problem: string; status: string }> } | null>(null);
+    const [isLoadingFull, setIsLoadingFull] = useState(false);
+
+    const heroRef = useScrollAnimation();
+    const featuresRef = useScrollAnimation();
+    const guideRef = useScrollAnimation();
 
     const handleDownloadPdf = async () => {
         if (!analysisResult) return;
@@ -70,6 +101,8 @@ export default function Home() {
         setError(null);
         setAppState('loading');
         setAnalysisResult(null);
+        setQuickResult(null);
+        setIsLoadingFull(false);
         setProgressMessage('Startar...');
 
         const tipInterval = setInterval(() => {
@@ -89,7 +122,6 @@ export default function Home() {
             }
 
             const reader = response.body?.getReader();
-            const decoder = new TextEncoder();
             const textDecoder = new TextDecoder();
 
             let partialResult: any = {
@@ -125,21 +157,24 @@ export default function Home() {
 
                         if (chunk.type === 'progress') {
                             setProgressMessage(chunk.data.message);
-                        } else if (chunk.type === 'metadata') {
+                        } else if (chunk.type === 'quick_result') {
+                            // Phase 1: Quick result - show teaser immediately!
+                            setQuickResult(chunk.data);
+                            setAppState('teaser');
+                            setIsLoadingFull(true);
+                        } else if (chunk.type === 'full_metadata') {
                             partialResult = { ...partialResult, ...chunk.data };
-                        } else if (chunk.type === 'categories') {
-                            partialResult.categories = [...partialResult.categories, ...chunk.data];
-                            // Transition to teaser as soon as we have some categories
-                            if (partialResult.categories.length > 0) {
-                                setAppState('teaser');
-                            }
-                        } else if (chunk.type === 'summary') {
+                        } else if (chunk.type === 'full_categories') {
+                            partialResult.categories = [...chunk.data];
+                            setIsLoadingFull(false);
+                        } else if (chunk.type === 'full_summary') {
                             partialResult = { ...partialResult, ...chunk.data };
+                        } else if (chunk.type === 'complete') {
+                            setIsLoadingFull(false);
                         } else if (chunk.type === 'error') {
                             throw new Error(chunk.data);
                         }
 
-                        // Re-calculate scores and category mapping
                         const cats = partialResult.categories;
                         const totalWeight = cats.reduce((sum: number, c: any) => sum + (c.weight || 1), 0);
                         const weightedSum = cats.reduce((sum: number, c: any) => sum + ((c.score || 3) * (c.weight || 1)), 0);
@@ -181,7 +216,6 @@ export default function Home() {
         }
     };
 
-    // Get 3 lowest scoring categories for teaser
     const getTopProblems = () => {
         if (!analysisResult) return [];
         return [...analysisResult.categories]
@@ -193,146 +227,207 @@ export default function Home() {
         if (score < 2) return 'text-red-500';
         if (score < 3) return 'text-orange-500';
         if (score < 3.5) return 'text-yellow-500';
-        if (score < 4.5) return 'text-green-500';
+        if (score < 4.5) return 'text-emerald-400';
         return 'text-emerald-500';
     };
 
     const getStatusBadge = (status: string) => {
         switch (status) {
             case 'critical':
-                return <span className="px-2 py-1 text-xs rounded-full bg-red-100 text-red-700">Kritiskt</span>;
+                return <span className="px-2 py-1 text-xs rounded-full bg-red-500/20 text-red-400">Kritiskt</span>;
             case 'improvement':
-                return <span className="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-700">Förbättra</span>;
+                return <span className="px-2 py-1 text-xs rounded-full bg-yellow-500/20 text-yellow-400">Förbättra</span>;
             case 'good':
-                return <span className="px-2 py-1 text-xs rounded-full bg-green-100 text-green-700">Bra</span>;
+                return <span className="px-2 py-1 text-xs rounded-full bg-emerald-500/20 text-emerald-400">Bra</span>;
             default:
                 return null;
         }
     };
 
-    // View 1: Home Page (URL Input)
+    // View 1: Home Page (URL Input) - Portalfabriken.se style
     if (appState === 'input') {
         return (
-            <div className="min-h-screen bg-[var(--background)] bg-grid-white text-white relative">
-                {/* Gradient overlay for better text readability */}
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/50 to-[var(--background)] pointer-events-none" />
-                <div className="container mx-auto px-4 py-16 relative z-10">
-                    <div className="max-w-3xl mx-auto text-center">
-                        <h1 className="text-4xl md:text-6xl font-medium mb-6 text-white tracking-tight">
-                            Analysera din webbplats konverteringsförmåga
-                        </h1>
-                        <p className="text-lg md:text-xl text-neutral-400 mb-12 font-light">
-                            Få en obarmhärtig analys av vad som hindrar din webbplats från att konvertera besökare till leads.
-                            Inget fluff – bara konkreta problem och lösningar.
-                        </p>
+            <div className="min-h-screen bg-black text-white relative overflow-hidden">
+                {/* Background Components - like portalfabriken.se */}
+                <div className="fixed inset-0 -z-10 h-full w-full bg-black">
+                    <div className="absolute inset-0 bg-grid-pattern" />
+                    <div className="absolute inset-0 bg-glow" />
+                </div>
 
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-slate-700">
-                            <div className="flex flex-col sm:flex-row gap-4">
-                                <div className="relative flex-1">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-5 h-5" />
-                                    <input
-                                        type="text"
-                                        value={url}
-                                        onChange={(e) => setUrl(e.target.value)}
-                                        onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-                                        placeholder="Ange URL att analysera, t.ex. www.example.se"
-                                        className="w-full pl-12 pr-4 py-4 bg-[var(--surface)] border border-slate-800 rounded-full text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent transition-all"
-                                    />
+                {/* Fixed Header */}
+                <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
+                    <div className="max-w-7xl mx-auto px-6">
+                        <nav className="flex h-16 items-center justify-between">
+                            <a href="/" className="flex items-center gap-3 group">
+                                <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold">
+                                    K
                                 </div>
-                                <button
-                                    onClick={handleAnalyze}
-                                    className="px-8 py-4 bg-[var(--accent-primary)] hover:bg-[#00bfa3] text-black font-semibold rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(0,217,163,0.3)]"
+                                <span className="font-medium text-sm tracking-tight text-white/90 group-hover:text-white transition-colors">
+                                    Konverteramera
+                                </span>
+                            </a>
+
+                            <div className="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 rounded-full p-1 pl-2 backdrop-blur-md">
+                                <a href="#guide" className="px-4 py-1.5 text-xs font-normal text-white bg-[#0a1628] rounded-full hover:bg-[#152238] transition-colors">
+                                    Guide för ökad konvertering
+                                </a>
+                                <a
+                                    href="https://calendly.com/stefan-245/30min"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="ml-1 relative inline-flex items-center justify-center rounded-full bg-white px-4 py-1.5 text-xs font-medium text-black transition-transform hover:scale-105 active:scale-95"
                                 >
-                                    Analysera
-                                </button>
+                                    Boka konsultation
+                                </a>
+                            </div>
+                        </nav>
+                    </div>
+                </header>
+
+                {/* Hero Section */}
+                <section className="pt-32 md:pt-48 pb-20 md:pb-32 px-6 relative">
+                    <div className="max-w-5xl mx-auto text-center relative z-10">
+                        <div
+                            ref={heroRef.ref}
+                            className={`transition-all duration-700 ${heroRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                        >
+                            <div className="inline-flex gap-2 text-xs text-emerald-400 bg-white/5 border-white/10 border rounded-full mb-8 py-1 px-3 items-center">
+                                Gratis Verktyg
+                                <span className="relative flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                </span>
                             </div>
 
-                            {error && (
-                                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400">
-                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                    <span>{error}</span>
-                                </div>
-                            )}
+                            <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium text-white tracking-tighter mb-8">
+                                Testa din webbsidas<br />
+                                <span className="text-white/40">konverteringsförmåga</span>
+                            </h1>
+
+                            <p className="text-base md:text-lg leading-relaxed font-light text-white/60 max-w-2xl mx-auto mb-10">
+                                Få en obarmhärtig analys av vad som hindrar din webbplats från att konvertera besökare till leads.
+                                Inget fluff – bara konkreta problem och lösningar.
+                            </p>
                         </div>
 
-                        {/* Feature cards */}
-                        <div className="grid md:grid-cols-3 gap-6 mt-16">
-                            <div className="bg-[var(--surface)] rounded-2xl p-6 border border-white/5">
-                                <div className="w-12 h-12 bg-[var(--accent-primary)]/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                    <Target className="w-6 h-6 text-[var(--accent-primary)]" />
+                        {/* Analysis Input */}
+                        <div
+                            className={`max-w-xl mx-auto transition-all duration-700 delay-150 ${heroRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                        >
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
+                                <div className="flex flex-col sm:flex-row gap-4">
+                                    <div className="relative flex-1">
+                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 w-5 h-5" />
+                                        <input
+                                            type="text"
+                                            value={url}
+                                            onChange={(e) => setUrl(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                                            placeholder="Ange URL, t.ex. www.example.se"
+                                            className="w-full pl-12 pr-4 py-4 bg-black/50 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                                        />
+                                    </div>
+                                    <button
+                                        onClick={handleAnalyze}
+                                        className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-xl bg-white px-8 font-medium text-black transition-all hover:bg-emerald-100 hover:scale-105 active:scale-95"
+                                    >
+                                        <span className="mr-2">Analysera</span>
+                                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                                    </button>
                                 </div>
-                                <h3 className="font-medium text-lg mb-2 text-white">10 Kritiska Områden</h3>
-                                <p className="text-neutral-400 text-sm">Vi analyserar allt från värdeerbjudande till formulärdesign</p>
+
+                                {error && (
+                                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400">
+                                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                        <span>{error}</span>
+                                    </div>
+                                )}
                             </div>
-                            <div className="bg-[var(--surface)] rounded-2xl p-6 border border-white/5">
-                                <div className="w-12 h-12 bg-[var(--accent-secondary)]/10 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                    <Zap className="w-6 h-6 text-[var(--accent-secondary)]" />
+                        </div>
+
+                        {/* Abstract Glow */}
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-emerald-500/10 blur-[100px] rounded-full -z-10 pointer-events-none" />
+                    </div>
+                </section>
+
+                {/* Features Section */}
+                <section className="py-16 px-6 border-t border-white/5 bg-white/[0.01]">
+                    <div
+                        ref={featuresRef.ref}
+                        className={`max-w-5xl mx-auto transition-all duration-700 ${featuresRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                    >
+                        <div className="grid md:grid-cols-3 gap-6">
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
+                                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4">
+                                    <span className="text-2xl">🎯</span>
+                                </div>
+                                <h3 className="font-medium text-lg mb-2 text-white">6 Kritiska Områden</h3>
+                                <p className="text-white/50 text-sm font-light">Vi analyserar allt från värdeerbjudande till formulärdesign</p>
+                            </div>
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
+                                <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
+                                    <span className="text-2xl">⚡</span>
                                 </div>
                                 <h3 className="font-medium text-lg mb-2 text-white">Läckande Trattar</h3>
-                                <p className="text-neutral-400 text-sm">Identifierar var du förlorar potentiella kunder</p>
+                                <p className="text-white/50 text-sm font-light">Identifierar var du förlorar potentiella kunder</p>
                             </div>
-                            <div className="bg-[var(--surface)] rounded-2xl p-6 border border-white/5">
-                                <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center mb-4 mx-auto">
-                                    <Users className="w-6 h-6 text-white" />
+                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
+                                <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4">
+                                    <span className="text-2xl">📋</span>
                                 </div>
                                 <h3 className="font-medium text-lg mb-2 text-white">Konkreta Åtgärder</h3>
-                                <p className="text-neutral-400 text-sm">Prioriterad lista med förbättringar du kan göra idag</p>
+                                <p className="text-white/50 text-sm font-light">Prioriterad lista med förbättringar du kan göra idag</p>
                             </div>
                         </div>
+                    </div>
+                </section>
 
-                        {/* Guide Section - portalfabriken.se style */}
-                        <div id="guide" className="mt-20 bg-[#0a0a0a] rounded-3xl p-8 md:p-12 border border-white/10">
+                {/* Guide Section */}
+                <section id="guide" className="py-24 px-6 border-t border-white/5">
+                    <div
+                        ref={guideRef.ref}
+                        className={`max-w-5xl mx-auto transition-all duration-700 ${guideRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                    >
+                        <div className="text-center mb-12">
+                            <p className="text-emerald-400 font-medium text-xs tracking-widest uppercase mb-2">Gratis Guide</p>
+                            <h2 className="text-3xl md:text-4xl font-medium text-white tracking-tight">
+                                Lär dig konverteringsoptimering
+                            </h2>
+                        </div>
+
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 md:p-12">
                             <div className="flex flex-col md:flex-row gap-8 items-center">
-                                {/* Book Cover - real image */}
+                                {/* Book Cover */}
                                 <div className="w-full md:w-1/3 flex-shrink-0">
                                     <img
                                         src="/omslag.png"
                                         alt="7 beprövade sätt att öka konverteringen och vinna fler affärer"
-                                        className="w-full rounded-xl shadow-2xl"
+                                        className="w-full rounded-xl shadow-2xl border border-white/10"
                                     />
                                 </div>
 
                                 {/* Guide Content */}
                                 <div className="flex-1">
-                                    <h3 className="text-3xl font-bold text-white mb-4">7 beprövade sätt att öka konverteringen och vinna fler affärer</h3>
-                                    <p className="font-semibold text-white mb-2">Denna guide ger dig</p>
-                                    <p className="text-white/60 mb-4">Konkreta verktyg för att:</p>
-                                    <ul className="space-y-2 text-white/80 mb-6 text-sm">
+                                    <h3 className="text-2xl md:text-3xl font-medium text-white mb-4 tracking-tight">
+                                        7 beprövade sätt att öka konverteringen
+                                    </h3>
+                                    <p className="text-white/60 mb-6 font-light">
+                                        Konkreta verktyg för att formulera värdeerbjudanden, fånga leads och eliminera friktion som dödar affärer.
+                                    </p>
+                                    <ul className="space-y-2 text-white/70 mb-6 text-sm">
                                         <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
-                                            <span>Formulera ett värdeerbjudande som faktiskt övertygar svenska beslutsfattare</span>
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                            <span>Formulera ett värdeerbjudande som faktiskt övertygar</span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                             <span>Fånga upp potentiella kunder innan de är redo att köpa</span>
                                         </li>
                                         <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
-                                            <span>Eliminera friktion som dödar affärer</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
                                             <span>Bygga systematiskt förtroende genom sociala bevis</span>
                                         </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
-                                            <span>Skapa handlingsdriven kommunikation som leder till avslut</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
-                                            <span>Strukturera komplex information utan att överväldiga</span>
-                                        </li>
-                                        <li className="flex items-start gap-2">
-                                            <span className="text-white/40 mt-0.5">•</span>
-                                            <span>Använda avancerade strategier för dramatisk tillväxt</span>
-                                        </li>
                                     </ul>
-                                    <div className="flex items-start gap-2 text-white/60 mb-6">
-                                        <span className="text-yellow-500">💡</span>
-                                        <span className="text-sm">
-                                            Kom ihåg: Varje kapitel avslutas med &quot;3 saker du kan göra imorgon&quot; – konkreta åtgärder som ger omedelbar effekt.
-                                        </span>
-                                    </div>
                                     <form
                                         name="guide-download"
                                         method="POST"
@@ -346,24 +441,31 @@ export default function Home() {
                                             name="email"
                                             placeholder="Din e-postadress"
                                             required
-                                            className="flex-1 px-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                            className="flex-1 px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                                         />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
-                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors whitespace-nowrap"
+                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
                                         >
                                             Hämta guiden
                                         </button>
                                     </form>
-                                    <p className="mt-4 text-xs text-white/40">
+                                    <p className="mt-4 text-xs text-white/30">
                                         Vi behandlar dina uppgifter enligt vår integritetspolicy.
                                     </p>
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
+
+                {/* Footer */}
+                <footer className="border-t border-white/5 py-8 px-6">
+                    <div className="max-w-5xl mx-auto text-center text-white/30 text-sm">
+                        © {new Date().getFullYear()} Konverteramera. Ett verktyg från Portalfabriken.
+                    </div>
+                </footer>
             </div>
         );
     }
@@ -371,14 +473,17 @@ export default function Home() {
     // View 2: Loading State
     if (appState === 'loading') {
         return (
-            <div className="min-h-screen bg-[var(--background)] bg-grid-white text-white flex items-center justify-center relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/80 to-[var(--background)] pointer-events-none" />
-                <div className="max-w-xl mx-auto text-center px-4 relative z-10">
-                    <Loader2 className="w-16 h-16 text-[var(--accent-primary)] animate-spin mx-auto mb-6" />
-                    <h2 className="text-2xl font-medium mb-2">Analyserar {url}</h2>
-                    <p className="text-[var(--accent-primary)] text-sm mb-6 animate-pulse">{progressMessage}</p>
-                    <div className="bg-[var(--surface)] rounded-2xl p-8 border border-white/5">
-                        <p className="text-neutral-300 text-lg italic">"{LOADING_TIPS[currentTipIndex]}"</p>
+            <div className="min-h-screen bg-black text-white flex items-center justify-center relative">
+                <div className="fixed inset-0 -z-10 h-full w-full bg-black">
+                    <div className="absolute inset-0 bg-grid-pattern" />
+                    <div className="absolute inset-0 bg-glow" />
+                </div>
+                <div className="max-w-xl mx-auto text-center px-6 relative z-10">
+                    <Loader2 className="w-16 h-16 text-emerald-500 animate-spin mx-auto mb-6" />
+                    <h2 className="text-2xl font-medium mb-2 tracking-tight">Analyserar {url}</h2>
+                    <p className="text-emerald-400 text-sm mb-8 animate-pulse">{progressMessage}</p>
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
+                        <p className="text-white/70 text-lg font-light italic">"{LOADING_TIPS[currentTipIndex]}"</p>
                     </div>
                 </div>
             </div>
@@ -386,88 +491,122 @@ export default function Home() {
     }
 
     // View 3: Teaser (Before Registration)
-    if (appState === 'teaser' && analysisResult) {
-        const topProblems = getTopProblems();
+    // Can show quickResult first, then update with analysisResult
+    if (appState === 'teaser' && (quickResult || analysisResult)) {
+        // Use full result if available, otherwise quick result
+        const displayScore = analysisResult?.overall_score ?? quickResult?.score ?? 3;
+        const displayScoreRounded = displayScore.toFixed(1);
+        const displayCategory = displayScore < 2 ? 'Kritiskt' : displayScore < 3 ? 'Undermåligt' : displayScore < 3.5 ? 'Godkänt' : displayScore < 4.5 ? 'Bra' : 'Utmärkt';
+
+        // Get problems to display - prefer full categories, fallback to quick problems
+        const topProblems = analysisResult ? getTopProblems() : [];
+        const quickProblems = quickResult?.problems ?? [];
 
         return (
-            <div className="min-h-screen bg-[var(--background)] bg-grid-white text-white py-16 relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/50 to-[var(--background)] pointer-events-none" />
-                <div className="container mx-auto px-4 max-w-2xl relative z-10">
+            <div className="min-h-screen bg-black text-white py-16 relative">
+                <div className="fixed inset-0 -z-10 h-full w-full bg-black">
+                    <div className="absolute inset-0 bg-grid-pattern" />
+                    <div className="absolute inset-0 bg-glow" />
+                </div>
+                <div className="container mx-auto px-6 max-w-2xl relative z-10">
                     <div className="text-center mb-8">
-                        <h2 className="text-2xl font-medium mb-2">Analys klar för</h2>
-                        <p className="text-[var(--accent-primary)]">{analysisResult.url}</p>
+                        <h2 className="text-2xl font-medium mb-2 tracking-tight">
+                            {isLoadingFull ? 'Snabbanalys klar' : 'Analys klar'} för
+                        </h2>
+                        <p className="text-emerald-400">{url}</p>
                     </div>
 
-                    <div className="bg-[var(--surface)] rounded-2xl p-8 border border-white/5 mb-8 text-center shadow-[0_0_50px_rgba(0,0,0,0.5)]">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 text-center backdrop-blur-md">
                         <div>
                             <div className="text-6xl font-bold mb-2">
-                                <span className={getScoreColor(analysisResult.overall_score)}>
-                                    {analysisResult.overall_score_rounded}
+                                <span className={getScoreColor(displayScore)}>
+                                    {displayScoreRounded}
                                 </span>
-                                <span className="text-neutral-500 text-2xl"> / 5</span>
+                                <span className="text-white/30 text-2xl"> / 5</span>
                             </div>
-                            <div className="text-xl font-medium text-neutral-300 mb-6">
-                                {analysisResult.overall_category}
+                            <div className="text-xl font-medium text-white/70 mb-6">
+                                {displayCategory}
                             </div>
-                            <div className="w-full bg-neutral-900 rounded-full h-3 mb-2 overflow-hidden">
+                            <div className="w-full bg-white/10 rounded-full h-3 mb-2 overflow-hidden">
                                 <div
-                                    className="bg-[var(--accent-primary)] h-3 rounded-full transition-all duration-1000"
-                                    style={{ width: `${(analysisResult.overall_score / 5) * 100}%` }}
+                                    className="bg-emerald-500 h-3 rounded-full transition-all duration-1000"
+                                    style={{ width: `${(displayScore / 5) * 100}%` }}
                                 />
                             </div>
+                            {isLoadingFull && (
+                                <p className="text-emerald-400 text-sm mt-4 animate-pulse flex items-center justify-center gap-2">
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Laddar fullständig rapport...
+                                </p>
+                            )}
                         </div>
                     </div>
 
-                    <div className="bg-[var(--surface)] rounded-2xl p-8 border border-white/5 mb-8">
-                        <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <span className="text-[var(--accent-secondary)]">🔴</span> De största problemen vi hittade:
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 backdrop-blur-md">
+                        <h3 className="text-xl font-medium mb-6 flex items-center gap-2 tracking-tight">
+                            <span className="text-red-400">🔴</span> De största problemen vi hittade:
                         </h3>
                         <div className="space-y-4">
-                            {topProblems.map((category, index) => (
-                                <div key={category.id} className="flex items-center justify-between p-4 bg-neutral-900/50 rounded-xl border border-white/5">
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-2xl">{category.icon}</span>
-                                        <span className="font-medium">{category.name}</span>
+                            {/* Show full categories if available */}
+                            {topProblems.length > 0 ? (
+                                topProblems.map((category) => (
+                                    <div key={category.id} className="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-2xl">{category.icon}</span>
+                                            <span className="font-medium">{category.name}</span>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <span className={`font-bold ${getScoreColor(category.score)}`}>
+                                                {category.score}/5
+                                            </span>
+                                            {getStatusBadge(category.status)}
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className={`font-bold ${getScoreColor(category.score)}`}>
-                                            {category.score}/5
-                                        </span>
-                                        {getStatusBadge(category.status)}
+                                ))
+                            ) : (
+                                /* Show quick problems while loading full */
+                                quickProblems.map((problem, i) => (
+                                    <div key={i} className="p-4 bg-black/30 rounded-xl border border-white/5">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <span className="font-medium">{problem.category}</span>
+                                            {getStatusBadge(problem.status)}
+                                        </div>
+                                        <p className="text-white/60 text-sm">{problem.problem}</p>
                                     </div>
-                                </div>
-                            ))}
+                                ))
+                            )}
                         </div>
                     </div>
 
-                    <div className="bg-gradient-to-b from-[var(--surface)] to-neutral-900/50 rounded-2xl p-8 border border-[var(--accent-primary)]/20 shadow-[0_0_30px_rgba(0,217,163,0.1)]">
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 backdrop-blur-md">
                         <div className="text-center mb-6">
                             <span className="text-2xl">🔒</span>
-                            <h3 className="text-xl font-bold mt-2 text-white">Registrera dig för att se:</h3>
+                            <h3 className="text-xl font-medium mt-2 text-white tracking-tight">Registrera dig för att se:</h3>
                         </div>
                         <ul className="space-y-3 mb-8">
                             <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-[var(--accent-primary)]" />
-                                <span>Detaljerade problembeskrivningar</span>
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                <span className="text-white/80">Detaljerade problembeskrivningar</span>
                             </li>
                             <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-[var(--accent-primary)]" />
-                                <span>Konkreta lösningsförslag</span>
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                <span className="text-white/80">Konkreta lösningsförslag</span>
                             </li>
                             <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-[var(--accent-primary)]" />
-                                <span>Alla 10 analyserade områden</span>
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                <span className="text-white/80">Alla 6 analyserade områden</span>
                             </li>
                             <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-[var(--accent-primary)]" />
-                                <span>Nedladdningsbar PDF-rapport</span>
+                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                <span className="text-white/80">Nedladdningsbar PDF-rapport</span>
                             </li>
                         </ul>
                         <button
                             onClick={() => setAppState('registration')}
-                            className="w-full py-4 bg-[var(--accent-primary)] hover:bg-[#00bfa3] text-black font-semibold rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(0,217,163,0.3)]"
+                            disabled={isLoadingFull}
+                            className="w-full py-4 bg-white hover:bg-emerald-100 text-black font-medium rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Visa min fullständiga rapport
+                            {isLoadingFull ? 'Vänta på fullständig rapport...' : 'Visa min fullständiga rapport'}
                         </button>
                     </div>
                 </div>
@@ -478,14 +617,17 @@ export default function Home() {
     // View 4: Registration
     if (appState === 'registration') {
         return (
-            <div className="min-h-screen bg-[var(--background)] bg-grid-white text-white flex items-center justify-center py-16 relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/80 to-[var(--background)] pointer-events-none" />
-                <div className="max-w-md mx-auto px-4 w-full relative z-10">
-                    <div className="bg-[var(--surface)] rounded-2xl p-8 border border-white/5 shadow-2xl">
-                        <h2 className="text-2xl font-bold text-center mb-6">Ange dina uppgifter</h2>
+            <div className="min-h-screen bg-black text-white flex items-center justify-center py-16 relative">
+                <div className="fixed inset-0 -z-10 h-full w-full bg-black">
+                    <div className="absolute inset-0 bg-grid-pattern" />
+                    <div className="absolute inset-0 bg-glow" />
+                </div>
+                <div className="max-w-md mx-auto px-6 w-full relative z-10">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 backdrop-blur-md">
+                        <h2 className="text-2xl font-medium text-center mb-6 tracking-tight">Ange dina uppgifter</h2>
                         <form onSubmit={handleRegister} className="space-y-4">
                             <div>
-                                <label htmlFor="firstName" className="block text-sm font-medium text-neutral-300 mb-2">
+                                <label htmlFor="firstName" className="block text-sm font-medium text-white/70 mb-2">
                                     Förnamn
                                 </label>
                                 <input
@@ -494,12 +636,12 @@ export default function Home() {
                                     value={firstName}
                                     onChange={(e) => setFirstName(e.target.value)}
                                     required
-                                    className="w-full px-6 py-3 bg-neutral-900 border border-neutral-800 rounded-full text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+                                    className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                                     placeholder="Ditt förnamn"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="email" className="block text-sm font-medium text-neutral-300 mb-2">
+                                <label htmlFor="email" className="block text-sm font-medium text-white/70 mb-2">
                                     E-post
                                 </label>
                                 <input
@@ -508,18 +650,18 @@ export default function Home() {
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
                                     required
-                                    className="w-full px-6 py-3 bg-neutral-900 border border-neutral-800 rounded-full text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-[var(--accent-primary)] focus:border-transparent"
+                                    className="w-full px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                                     placeholder="din@email.se"
                                 />
                             </div>
                             <button
                                 type="submit"
-                                className="w-full py-4 bg-[var(--accent-primary)] hover:bg-[#00bfa3] text-black font-semibold rounded-full transition-all transform hover:scale-105 shadow-[0_0_20px_rgba(0,217,163,0.3)] mt-4"
+                                className="w-full py-4 bg-white hover:bg-emerald-100 text-black font-medium rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] mt-4"
                             >
                                 Visa min rapport
                             </button>
                         </form>
-                        <p className="text-center text-sm text-neutral-500 mt-4">
+                        <p className="text-center text-sm text-white/40 mt-4">
                             🔒 Vi delar aldrig din information med tredje part.
                         </p>
                     </div>
@@ -535,21 +677,24 @@ export default function Home() {
         const goodCategories = analysisResult.categories.filter(c => c.status === 'good');
 
         return (
-            <div className="min-h-screen bg-[var(--background)] bg-grid-white text-white py-8 relative">
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[var(--background)]/50 to-[var(--background)] pointer-events-none" />
-                <div className="container mx-auto px-4 max-w-4xl relative z-10">
+            <div className="min-h-screen bg-black text-white py-8 relative">
+                <div className="fixed inset-0 -z-10 h-full w-full bg-black">
+                    <div className="absolute inset-0 bg-grid-pattern" />
+                    <div className="absolute inset-0 bg-glow" />
+                </div>
+                <div className="container mx-auto px-6 max-w-4xl relative z-10">
                     {/* Header */}
-                    <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700 mb-8">
+                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 backdrop-blur-md">
                         <div className="flex justify-between items-start mb-6">
                             <div>
-                                <h1 className="text-2xl font-bold mb-2">📊 Konverteringsanalys</h1>
-                                <p className="text-slate-400">{analysisResult.url}</p>
-                                <p className="text-slate-500 text-sm">Genererad: {new Date(analysisResult.analyzed_at).toLocaleDateString('sv-SE')}</p>
+                                <h1 className="text-2xl font-medium mb-2 tracking-tight">📊 Konverteringsanalys</h1>
+                                <p className="text-white/50">{analysisResult.url}</p>
+                                <p className="text-white/30 text-sm">Genererad: {new Date(analysisResult.analyzed_at).toLocaleDateString('sv-SE')}</p>
                             </div>
                             <button
                                 onClick={handleDownloadPdf}
                                 disabled={isDownloadingPdf}
-                                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isDownloadingPdf ? (
                                     <>
@@ -567,40 +712,40 @@ export default function Home() {
                                 <span className={getScoreColor(analysisResult.overall_score)}>
                                     {analysisResult.overall_score_rounded}
                                 </span>
-                                <span className="text-slate-500 text-3xl"> / 5</span>
+                                <span className="text-white/30 text-3xl"> / 5</span>
                             </div>
-                            <div className="text-2xl font-semibold text-slate-300 mb-4">
+                            <div className="text-2xl font-medium text-white/70 mb-4">
                                 {analysisResult.overall_category}
                             </div>
-                            <div className="w-full max-w-md mx-auto bg-slate-700 rounded-full h-4 mb-6">
+                            <div className="w-full max-w-md mx-auto bg-white/10 rounded-full h-4 mb-6">
                                 <div
-                                    className="bg-gradient-to-r from-emerald-500 to-cyan-500 h-4 rounded-full transition-all duration-500"
+                                    className="bg-emerald-500 h-4 rounded-full transition-all duration-500"
                                     style={{ width: `${(analysisResult.overall_score / 5) * 100}%` }}
                                 />
                             </div>
-                            <p className="text-slate-300 max-w-2xl mx-auto">{analysisResult.overall_summary}</p>
+                            <p className="text-white/60 max-w-2xl mx-auto font-light">{analysisResult.overall_summary}</p>
                         </div>
                     </div>
 
                     {/* Critical Issues */}
                     {criticalCategories.length > 0 && (
                         <div className="mb-8">
-                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-medium mb-4 flex items-center gap-2 tracking-tight">
                                 <span className="text-red-400">🔴</span> KRITISKA PROBLEM
                             </h2>
                             <div className="space-y-4">
                                 {criticalCategories.map(category => (
-                                    <div key={category.id} className="bg-red-500/10 backdrop-blur-sm rounded-2xl p-6 border border-red-500/20">
+                                    <div key={category.id} className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 backdrop-blur-md">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-2xl">{category.icon}</span>
-                                                <h3 className="text-lg font-semibold">{category.name}</h3>
+                                                <h3 className="text-lg font-medium">{category.name}</h3>
                                             </div>
                                             <span className="text-red-400 font-bold">{category.score}/5</span>
                                         </div>
                                         {category.problems.map((problem, i) => (
-                                            <div key={i} className="bg-slate-900/50 rounded-xl p-4 mb-3">
-                                                <p className="text-slate-300 mb-3"><strong>Problem:</strong> {problem.description}</p>
+                                            <div key={i} className="bg-black/30 rounded-xl p-4 mb-3">
+                                                <p className="text-white/70 mb-3"><strong className="text-white">Problem:</strong> {problem.description}</p>
                                                 <p className="text-emerald-400"><strong>Rekommendation:</strong> {problem.recommendation}</p>
                                             </div>
                                         ))}
@@ -613,23 +758,23 @@ export default function Home() {
                     {/* Improvement Opportunities */}
                     {improvementCategories.length > 0 && (
                         <div className="mb-8">
-                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                            <h2 className="text-xl font-medium mb-4 flex items-center gap-2 tracking-tight">
                                 <span className="text-yellow-400">🟡</span> FÖRBÄTTRINGSMÖJLIGHETER
                             </h2>
                             <div className="space-y-4">
                                 {improvementCategories.map(category => (
-                                    <details key={category.id} className="bg-yellow-500/10 backdrop-blur-sm rounded-2xl border border-yellow-500/20 group">
+                                    <details key={category.id} className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl group backdrop-blur-md">
                                         <summary className="p-6 cursor-pointer flex items-center justify-between">
                                             <div className="flex items-center gap-3">
                                                 <span className="text-2xl">{category.icon}</span>
-                                                <h3 className="text-lg font-semibold">{category.name}</h3>
+                                                <h3 className="text-lg font-medium">{category.name}</h3>
                                             </div>
                                             <span className="text-yellow-400 font-bold">{category.score}/5</span>
                                         </summary>
                                         <div className="px-6 pb-6">
                                             {category.problems.map((problem, i) => (
-                                                <div key={i} className="bg-slate-900/50 rounded-xl p-4 mb-3">
-                                                    <p className="text-slate-300 mb-3"><strong>Problem:</strong> {problem.description}</p>
+                                                <div key={i} className="bg-black/30 rounded-xl p-4 mb-3">
+                                                    <p className="text-white/70 mb-3"><strong className="text-white">Problem:</strong> {problem.description}</p>
                                                     <p className="text-emerald-400"><strong>Rekommendation:</strong> {problem.recommendation}</p>
                                                 </div>
                                             ))}
@@ -643,15 +788,15 @@ export default function Home() {
                     {/* Strengths */}
                     {goodCategories.length > 0 && (
                         <div className="mb-8">
-                            <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                                <span className="text-green-400">🟢</span> STYRKOR
+                            <h2 className="text-xl font-medium mb-4 flex items-center gap-2 tracking-tight">
+                                <span className="text-emerald-400">🟢</span> STYRKOR
                             </h2>
-                            <div className="bg-green-500/10 backdrop-blur-sm rounded-2xl p-6 border border-green-500/20">
+                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 backdrop-blur-md">
                                 <ul className="space-y-2">
                                     {analysisResult.strengths.map((strength, i) => (
                                         <li key={i} className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-5 h-5 text-green-400" />
-                                            <span>{strength}</span>
+                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                            <span className="text-white/80">{strength}</span>
                                         </li>
                                     ))}
                                 </ul>
@@ -661,19 +806,19 @@ export default function Home() {
 
                     {/* Action List */}
                     <div className="mb-8">
-                        <h2 className="text-xl font-bold mb-4">📋 PRIORITERAD ÅTGÄRDSLISTA</h2>
-                        <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
+                        <h2 className="text-xl font-medium mb-4 tracking-tight">📋 PRIORITERAD ÅTGÄRDSLISTA</h2>
+                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
                             <ul className="space-y-3">
                                 {analysisResult.action_list.map((action, i) => (
                                     <li key={i} className="flex items-start gap-3">
-                                        <span className="w-6 h-6 flex items-center justify-center rounded border border-slate-600 text-sm">
+                                        <span className="w-6 h-6 flex items-center justify-center rounded border border-white/20 text-sm text-white/60">
                                             {i + 1}
                                         </span>
                                         <div>
-                                            <span className="font-medium">{action.action}</span>
+                                            <span className="font-medium text-white/90">{action.action}</span>
                                             <span className={`ml-2 text-xs px-2 py-0.5 rounded ${action.priority === 'critical' ? 'bg-red-500/20 text-red-400' :
                                                 action.priority === 'important' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    'bg-slate-500/20 text-slate-400'
+                                                    'bg-white/10 text-white/50'
                                                 }`}>
                                                 {action.priority === 'critical' ? 'Kritisk' : action.priority === 'important' ? 'Viktig' : 'Förbättring'}
                                             </span>
@@ -685,18 +830,19 @@ export default function Home() {
                     </div>
 
                     {/* CTA */}
-                    <div className="bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 rounded-2xl p-8 border border-emerald-500/20 text-center">
-                        <h2 className="text-xl font-bold mb-4">📞 Nästa steg</h2>
-                        <p className="text-slate-300 mb-6">
+                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center backdrop-blur-md">
+                        <h2 className="text-xl font-medium mb-4 tracking-tight">📞 Nästa steg</h2>
+                        <p className="text-white/60 mb-6 font-light">
                             Vill du ha hjälp att implementera dessa förbättringar och öka din konvertering?
                         </p>
                         <a
                             href="https://calendly.com/stefan-245/30min"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-block px-8 py-4 bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg shadow-emerald-500/25"
+                            className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-emerald-100 text-black font-medium rounded-xl transition-all transform hover:scale-105 active:scale-95"
                         >
                             Boka genomgång för ökad konvertering
+                            <ArrowRight className="w-4 h-4" />
                         </a>
                     </div>
                 </div>

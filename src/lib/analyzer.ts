@@ -1,8 +1,9 @@
 import { ScrapedData, AnalysisResult, AnalysisCategory } from '@/types/analysis';
 
 /**
- * ULTRA-FAST Analysis V4.0
- * Single API call, local summary generation
+ * TWO-PHASE Analysis V5.0 - Grok Edition
+ * Phase 1: Quick analysis (3 categories, <2s)
+ * Phase 2: Full analysis (6 categories, detailed)
  */
 
 const CATEGORY_DEFINITIONS: Record<string, { name: string; icon: string; weight: number }> = {
@@ -14,22 +15,126 @@ const CATEGORY_DEFINITIONS: Record<string, { name: string; icon: string; weight:
   content_clarity: { name: 'Innehåll', icon: '📝', weight: 1.0 }
 };
 
-// Single ultra-compact prompt - 6 categories only
-const SINGLE_PROMPT = `Analysera webbsida för konvertering. 6 kategorier. Kortfattat.
-JSON: {"c":[{"id":"value_proposition|call_to_action|social_proof|lead_capture|trust_signals|content_clarity","s":1-5,"st":"critical|improvement|good","p":"problem","r":"rekommendation"}]}
-Exakt 6 objekt. Svenska. Max 15 ord per p/r.`;
+// Quick prompt - only 3 most important categories
+const QUICK_PROMPT = `Analysera konvertering. Svara ENDAST med JSON: {"c":[{"id":"value_proposition","s":3,"st":"improvement","p":"kort problem"},{"id":"call_to_action","s":3,"st":"improvement","p":"kort problem"},{"id":"lead_capture","s":3,"st":"improvement","p":"kort problem"}]} där id är en av: value_proposition, call_to_action, lead_capture. s=poäng 1-5, st=critical|improvement|good, p=kort problembeskrivning på svenska.`;
+
+// Full prompt - all 6 categories with recommendations
+const FULL_PROMPT = `Analysera konvertering. Svara ENDAST med JSON: {"c":[{"id":"value_proposition","s":3,"st":"improvement","p":"kort problem","r":"kort lösning"},...]} för alla 6 kategorier: value_proposition, call_to_action, social_proof, lead_capture, trust_signals, content_clarity. s=poäng 1-5, st=critical|improvement|good, p=problem, r=rekommendation. Svenska.`;
+
+export interface QuickAnalysisResult {
+  score: number;
+  problems: Array<{ category: string; problem: string; status: string }>;
+}
+
+/**
+ * QUICK Analysis - Phase 1 (mål: <2 sekunder)
+ * Analyzes only 3 key categories for instant feedback
+ */
+export async function analyzeQuick(scrapedData: ScrapedData): Promise<QuickAnalysisResult> {
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) throw new Error('XAI_API_KEY is not configured');
+
+  const userPrompt = `${scrapedData.url}\n${scrapedData.title}\n${scrapedData.visibleText.substring(0, 300)}`;
+
+  try {
+    const res = await callGrokQuick(apiKey, QUICK_PROMPT, userPrompt);
+
+    const categories = (res.c || []).map((cat: any) => {
+      const def = CATEGORY_DEFINITIONS[cat.id] || { name: cat.id, weight: 1.0 };
+      return {
+        id: cat.id,
+        name: def.name,
+        score: cat.s || 3,
+        status: cat.st || 'improvement',
+        problem: cat.p || ''
+      };
+    });
+
+    // Calculate quick score from 3 categories
+    const totalWeight = categories.reduce((sum: number, c: any) => sum + (CATEGORY_DEFINITIONS[c.id]?.weight || 1), 0);
+    const weightedSum = categories.reduce((sum: number, c: any) => sum + (c.score * (CATEGORY_DEFINITIONS[c.id]?.weight || 1)), 0);
+    const score = totalWeight > 0 ? parseFloat(((weightedSum / (5 * totalWeight)) * 5).toFixed(1)) : 3;
+
+    const problems = categories
+      .filter((c: any) => c.problem && c.status !== 'good')
+      .map((c: any) => ({
+        category: c.name,
+        problem: c.problem,
+        status: c.status
+      }));
+
+    return { score, problems };
+  } catch (e) {
+    console.error("Quick analysis failed", e);
+    return { score: 3, problems: [] };
+  }
+}
+
+/**
+ * Quick Grok API call with shorter timeout
+ */
+async function callGrokQuick(apiKey: string, system: string, user: string): Promise<any> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000); // 5s timeout for quick
+
+  try {
+    console.log("Calling Grok API (quick)...");
+    const startTime = Date.now();
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'grok-3-fast',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ],
+        temperature: 0.1,
+        max_tokens: 400
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeout);
+    console.log(`Grok quick response in ${Date.now() - startTime}ms`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Grok API error:", response.status, errorText);
+      return { c: [] };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) return { c: [] };
+
+    // Extract JSON from response (Grok might include markdown)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return { c: [] };
+
+    return JSON.parse(jsonMatch[0]);
+  } catch (e) {
+    clearTimeout(timeout);
+    console.error("Grok quick API failed:", e instanceof Error ? e.message : e);
+    return { c: [] };
+  }
+}
 
 export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGenerator<any> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error('OPENAI_API_KEY is not configured');
+  const apiKey = process.env.XAI_API_KEY;
+  if (!apiKey) throw new Error('XAI_API_KEY is not configured');
 
   const userPrompt = formatPrompt(scrapedData);
 
   yield { type: 'metadata', data: { url: scrapedData.url, analyzed_at: new Date().toISOString() } };
 
   try {
-    // SINGLE API CALL - that's it!
-    const res = await callAPI(apiKey, SINGLE_PROMPT, userPrompt);
+    // FULL API CALL - all 6 categories
+    const res = await callGrok(apiKey, FULL_PROMPT, userPrompt);
 
     const categories = (res.c || []).map((cat: any) => {
       const def = CATEGORY_DEFINITIONS[cat.id] || { name: cat.id, icon: '❓', weight: 1.0 };
@@ -92,47 +197,68 @@ function generateLocalSummary(categories: any[], scrapedData: ScrapedData) {
   };
 }
 
-async function callAPI(apiKey: string, system: string, user: string): Promise<any> {
+async function callGrok(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
 
   try {
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    console.log("Calling Grok API...");
+    const startTime = Date.now();
+
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'system', content: system }, { role: 'user', content: user }],
+        model: 'grok-3-fast',
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user }
+        ],
         temperature: 0.1,
-        max_tokens: 600, // Very small - just scores and short text
-        response_format: { type: 'json_object' }
+        max_tokens: 800
       }),
       signal: controller.signal
     });
 
     clearTimeout(timeout);
+    console.log(`Grok response in ${Date.now() - startTime}ms, status: ${response.status}`);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Grok API error:", response.status, errorText);
+      return { c: [] };
+    }
+
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-    if (!content) return { c: [] };
+    if (!content) {
+      console.error("Grok empty response:", JSON.stringify(data).substring(0, 500));
+      return { c: [] };
+    }
 
-    return JSON.parse(content);
+    // Extract JSON from response (Grok might include markdown)
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error("No JSON found in Grok response:", content.substring(0, 200));
+      return { c: [] };
+    }
+
+    console.log("Grok success, parsing JSON...");
+    return JSON.parse(jsonMatch[0]);
   } catch (e) {
     clearTimeout(timeout);
-    console.error("API failed:", e);
+    console.error("Grok API failed:", e instanceof Error ? e.message : e);
     return { c: [] };
   }
 }
 
 function formatPrompt(data: ScrapedData): string {
-  // Ultra-compact: just 1500 chars of content
-  const text = data.visibleText.substring(0, 1500);
-  const forms = data.forms?.length || 0;
-  const btns = data.buttons?.filter(b => b.trim()).slice(0, 3).join(', ') || 'inga';
-
-  return `${data.url}\n${data.title}\nForms:${forms} CTAs:${btns}\n${text}`;
+  // Minimal content for speed
+  const text = data.visibleText.substring(0, 1000);
+  return `${data.url}\n${data.title}\n${text}`;
 }
 
 // Fallback for non-streaming

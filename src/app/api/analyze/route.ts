@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { scrapeWebsite } from '@/lib/scraper';
-import { analyzeWebsiteStream } from '@/lib/analyzer';
+import { scrapeWebsite, scrapeQuick } from '@/lib/scraper';
+import { analyzeWebsiteStream, analyzeQuick } from '@/lib/analyzer';
 
 export async function POST(request: NextRequest) {
     try {
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'URL is required' }, { status: 400 });
         }
 
-        // Create streaming response that includes scraping progress
+        // Two-phase streaming response
         const stream = new ReadableStream({
             async start(controller) {
                 const encoder = new TextEncoder();
@@ -20,21 +20,31 @@ export async function POST(request: NextRequest) {
                 };
 
                 try {
-                    // Step 1: Scrape the website with progress updates
-                    send({ type: 'progress', data: { step: 'scraping', message: 'Hämtar webbsida...' } });
+                    // ========== PHASE 1: Quick Analysis (<3s) ==========
+                    send({ type: 'progress', data: { step: 'quick_scraping', message: 'Snabbhämtar webbsida...' } });
 
-                    const scrapedData = await scrapeWebsite(url);
+                    const quickData = await scrapeQuick(url);
 
-                    send({ type: 'progress', data: { step: 'scraped', message: 'Webbsida hämtad, startar analys...' } });
-
-                    // Step 2: Stream Analysis Results
-                    send({ type: 'progress', data: { step: 'analyzing', message: 'Analyserar konverteringsförmåga...' } });
-
-                    const analyzer = analyzeWebsiteStream(scrapedData);
-                    for await (const chunk of analyzer) {
-                        send(chunk);
+                    // Only proceed with quick analysis if we got some content
+                    if (quickData.visibleText) {
+                        send({ type: 'progress', data: { step: 'quick_analyzing', message: 'Snabbanalyserar...' } });
+                        const quickResult = await analyzeQuick(quickData);
+                        send({ type: 'quick_result', data: quickResult });
                     }
 
+                    // ========== PHASE 2: Full Analysis ==========
+                    send({ type: 'progress', data: { step: 'full_scraping', message: 'Hämtar fullständig data...' } });
+
+                    const fullData = await scrapeWebsite(url);
+
+                    send({ type: 'progress', data: { step: 'full_analyzing', message: 'Djupanalyserar...' } });
+
+                    const analyzer = analyzeWebsiteStream(fullData);
+                    for await (const chunk of analyzer) {
+                        send({ type: 'full_' + chunk.type, data: chunk.data });
+                    }
+
+                    send({ type: 'complete', data: {} });
                     controller.close();
                 } catch (err) {
                     send({ type: 'error', data: err instanceof Error ? err.message : 'Analysis failed' });

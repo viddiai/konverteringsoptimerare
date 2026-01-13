@@ -5,7 +5,100 @@ const scrapeCache = new Map<string, { data: ScrapedData; timestamp: number }>();
 const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
- * ULTRA-FAST Scraper V2.0
+ * QUICK Scraper - Fas 1 (mål: <2 sekunder)
+ * Endast direkthämtning, minimal parsing
+ */
+export async function scrapeQuick(url: string): Promise<ScrapedData> {
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+        normalizedUrl = 'https://' + normalizedUrl;
+    }
+
+    // Cache hit = instant return
+    const cacheKey = normalizedUrl.toLowerCase();
+    const cached = scrapeCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < CACHE_TTL_MS) {
+        return cached.data;
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout!
+
+    try {
+        const res = await fetch(normalizedUrl, {
+            signal: controller.signal,
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)',
+                'Accept': 'text/html',
+            },
+            redirect: 'follow',
+        });
+        clearTimeout(timeout);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const html = await res.text();
+        return parseHtmlQuick(html, normalizedUrl);
+    } catch (e) {
+        clearTimeout(timeout);
+        // Return minimal data on failure - full scrape will retry
+        return {
+            url: normalizedUrl,
+            title: '',
+            metaDescription: '',
+            h1: [],
+            headings: [],
+            paragraphs: [],
+            links: [],
+            buttons: [],
+            forms: [],
+            images: [],
+            visibleText: '',
+            localLeaks: []
+        };
+    }
+}
+
+/**
+ * Minimal HTML parsing for quick analysis
+ */
+function parseHtmlQuick(html: string, url: string): ScrapedData {
+    const titleMatch = html.match(/<title[^>]*>([^<]*)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].trim() : '';
+
+    const metaDescMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']*)["']/i) ||
+        html.match(/<meta[^>]*content=["']([^"']*)["'][^>]*name=["']description["']/i);
+    const metaDescription = metaDescMatch ? metaDescMatch[1].trim() : '';
+
+    const h1Matches = html.matchAll(/<h1[^>]*>([^<]*(?:<[^>]*>[^<]*)*)<\/h1>/gi);
+    const h1: string[] = [];
+    for (const match of h1Matches) {
+        h1.push(stripHtml(match[1]).trim());
+    }
+
+    // Only extract first 500 chars of visible text for quick analysis
+    const visibleText = stripHtml(html)
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 500);
+
+    return {
+        url,
+        title,
+        metaDescription,
+        h1,
+        headings: [],
+        paragraphs: [],
+        links: [],
+        buttons: [],
+        forms: [],
+        images: [],
+        visibleText,
+        localLeaks: []
+    };
+}
+
+/**
+ * FULL Scraper - Fas 2
  * Uses Promise.race - returns first successful result
  */
 export async function scrapeWebsite(url: string): Promise<ScrapedData> {
