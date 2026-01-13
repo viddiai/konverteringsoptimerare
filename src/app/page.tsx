@@ -342,11 +342,13 @@ export default function Home() {
                                         </span>
                                     </div>
                                     <form
-                                        id="guide-form"
-                                        action="https://formspree.io/f/mzddpzqo"
+                                        name="guide-download"
                                         method="POST"
+                                        data-netlify="true"
+                                        action="/tack"
                                         className="flex flex-col sm:flex-row gap-4"
                                     >
+                                        <input type="hidden" name="form-name" value="guide-download" />
                                         <input
                                             type="email"
                                             name="email"
@@ -354,8 +356,6 @@ export default function Home() {
                                             required
                                             className="guide-form-input"
                                         />
-                                        <input type="hidden" name="_subject" value="Ny guide-nedladdning från Konverteramera" />
-                                        <input type="hidden" name="_next" value="https://konverteramera.netlify.app/tack" />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
