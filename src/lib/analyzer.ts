@@ -40,93 +40,28 @@ Svara med:
 
 Endast JSON, inget annat.`;
 
-// Full detailed prompt based on specification
-const FULL_PROMPT = `Du är expert på konverteringsoptimering för svenska B2B/B2C-webbplatser. Din uppgift är att identifiera "läckande trattar" – problem som gör att potentiella kunder lämnar utan att ta kontakt.
+// Compact prompt - optimized for speed while maintaining quality
+const FULL_PROMPT = `Analysera svenska webbplatsers konvertering. Svara ENDAST med JSON på svenska.
 
-## ANALYSERA EXAKT DESSA 10 KATEGORIER:
+KATEGORIER att analysera (använd EXAKT dessa id-strängar):
+- value_proposition (Värdeerbjudande)
+- call_to_action (CTA)
+- social_proof (Recensioner)
+- lead_capture (Leadfångst)
+- form_design (Formulär)
+- guarantees (Garantier)
+- urgency_scarcity (Brådska, 3=neutral)
+- process_clarity (Process)
+- content_architecture (Struktur)
+- offer_structure (Erbjudande)
 
-### 1. value_proposition (vikt: 2.0) - Värdeerbjudande
-Letar efter: Tydlig H1, fokus på FÖRDELAR (inte bara egenskaper), förståeligt inom 5 sek, differentiering, bevis.
-Problem-tags: unclear_headline, features_not_benefits, missing_usp, value_prop_too_complex, no_proof_points
-Poäng: 1=rubrik förklarar inte vad de gör, 2=fokus på egenskaper, 3=saknar differentiering, 4=bra men saknar bevis, 5=kristallklart
+Poäng: 1-5, status: critical/improvement/good/neutral
+Max 1-2 problem per kategori, korta beskrivningar på svenska.
 
-### 2. call_to_action (vikt: 1.5) - CTA & Knappar
-Letar efter: Tydliga CTA-knappar, synlig ovanför fold, handlingsorienterat språk (EJ "Skicka"), visuell kontrast.
-Problem-tags: no_cta_found, cta_below_fold, generic_cta_text, low_contrast_cta, single_cta_placement
-Poäng: 1=ingen CTA, 2=generisk text/"Skicka", 3=dålig placering, 4=bra men kan förstärkas, 5=optimal
+EXAKT FORMAT:
+{"c":[{"id":"value_proposition","s":4,"st":"good","p":[]},{"id":"social_proof","s":2,"st":"critical","p":[{"t":"no_proof","sv":"high","d":"Problem","r":"Lösning"}]}]}
 
-### 3. social_proof (vikt: 1.0) - Social Proof & Trovärdighet
-Letar efter: Kundrecensioner med namn, kundlogotyper, siffror ("500+ kunder"), tredjepartsvalidering.
-Problem-tags: no_social_proof, no_testimonials, anonymous_testimonials, no_client_logos, no_quantitative_proof
-Poäng: 1=ingen social proof, 2=anonym/gömd, 3=finns men ej strategisk, 4=flera typer, 5=omfattande
-
-### 4. lead_capture (vikt: 1.5) - Leadfångst & Leadmagnets
-Letar efter: Leadmagnet (guide, checklista), tydligt värde, få formulärfält, synlig placering.
-KRITISKT: Identifiera mailto:-länkar och öppna PDF:er utan registrering!
-Problem-tags: no_lead_magnet, mailto_link_leak, open_pdf_leak, weak_lead_magnet_value, lead_magnet_hidden
-Poäng: 1=ingen leadmagnet, 2=mailto-läckor/öppna PDF:er, 3=svår att hitta, 4=bra men för många fält, 5=oemotståndlig
-
-### 5. form_design (vikt: 1.0) - Formulärdesign
-Letar efter: Minimalt antal fält, tydliga etiketter, handlingsorienterad knapp, visuellt rent.
-Problem-tags: too_many_form_fields, generic_submit_button, unclear_field_labels, captcha_friction
-Poäng: 1=många onödiga fält, 2=generisk knapp, 3=saknar optimering, 4=strömlinjeformat, 5=friktionsfritt
-
-### 6. guarantees (vikt: 1.0) - Garantier & Riskminimering
-Letar efter: Nöjdhetsgaranti/pengarna tillbaka, synligt placerad, modig formulering, enkla villkor.
-Problem-tags: no_guarantee, guarantee_hidden, guarantee_short_duration, guarantee_weak_language
-Poäng: 1=ingen garanti, 2=gömd/komplicerad, 3=synlig men ej optimal, 4=stark och generös, 5=modig och motiverad
-
-### 7. urgency_scarcity (vikt: 0.75) - Brådska & Knapphet
-Letar efter: Tidsbegränsade erbjudanden, begränsad kvantitet, autentisk brådska.
-OBS: Ofta neutral (3/5) för tjänsteföretag om det inte finns naturlig urgency.
-Problem-tags: no_urgency_elements (neutral), fake_urgency, missed_urgency_opportunity
-Poäng: 2=fabricerad urgency, 3=inga element (NEUTRAL), 4=autentisk, 5=strategisk och trovärdig
-
-### 8. process_clarity (vikt: 1.0) - Processklarhet
-Letar efter: Förklaring av vad som händer efter kontakt, steg-för-steg, tidsförväntningar ("Svar inom 24h").
-Problem-tags: no_process_explanation, no_next_step_info, no_timeline_info, contact_info_hidden
-Poäng: 1=ingen processinfo, 2=vag/ofullständig, 3=grundläggande, 4=tydlig med tidsramar, 5=komplett future-pacing
-
-### 9. content_architecture (vikt: 0.75) - Innehållsarkitektur
-Letar efter: Logisk struktur, skannbarhet (rubriker, korta stycken), visuell hierarki.
-Problem-tags: poor_content_structure, wall_of_text, no_visual_hierarchy, content_overwhelming
-Poäng: 1=kaotisk/wall of text, 2=svårt att hitta info, 3=rimlig struktur, 4=bra hierarki, 5=optimal
-
-### 10. offer_structure (vikt: 1.0) - Erbjudande
-Letar efter: Lågt tröskel första steg (gratis konsultation), transparent prissättning, segmenterade alternativ.
-Problem-tags: no_low_barrier_entry, pricing_not_transparent, single_offering, no_premiums
-Poäng: 1=hög tröskel/otydligt, 2=ej optimerat, 3=kan förbättras, 4=bra med låg tröskel, 5=no-brainer erbjudande
-
-## OUTPUT FORMAT (ENDAST JSON):
-{
-  "c": [
-    {
-      "id": "value_proposition",
-      "s": 3,
-      "st": "improvement",
-      "p": [{
-        "t": "features_not_benefits",
-        "sv": "medium",
-        "d": "Problembeskrivning på svenska",
-        "r": "Konkret rekommendation",
-        "e": "Hittade: 'Välkommen till vår webbplats'"
-      }]
-    }
-  ]
-}
-
-Fält:
-- id: kategori-id
-- s: poäng 1-5
-- st: critical|improvement|good|neutral
-- p: array av problem (kan vara tom om score 4-5)
-- t: problem-tag
-- sv: severity (high|medium|low)
-- d: description (svenska)
-- r: recommendation (svenska)
-- e: evidence (vad du hittade på sidan, kan vara null)
-
-Svara ENDAST med JSON, inget annat.`;
+Använd ALLTID strängvärden för id (t.ex. "value_proposition", INTE nummer). JSON only.`;
 
 export interface QuickAnalysisResult {
   score: number;
@@ -203,7 +138,7 @@ async function callGrokQuick(apiKey: string, system: string, user: string): Prom
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-3-fast',
+        model: 'grok-4-fast',  // Newest fast model
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user }
@@ -270,22 +205,27 @@ export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGene
 }
 
 function formatFullPrompt(data: ScrapedData): string {
-  // Compact format for faster API response
-  const leaks = data.localLeaks.slice(0, 3).map(l => `${l.type}: ${l.details}`).join('; ');
-  const forms = data.forms.slice(0, 2).map(f => `${f.fields.length} fält, knapp: "${f.submitText}"`).join('; ');
-  const buttons = data.buttons.slice(0, 5).join(', ');
+  // ULTRA-COMPACT format for fastest API response
+  const leaks = data.localLeaks.slice(0, 2).map(l => l.type).join(', ');
+  const formInfo = data.forms.length > 0 ? `${data.forms[0].fields.length} fält` : 'Inga';
+  const ctaButtons = data.buttons.slice(0, 3).join(', ');
 
-  // Limit text to 1500 chars for faster processing
-  const visibleText = data.visibleText.substring(0, 1500);
+  // Limit text strictly to 1000 chars
+  const visibleText = (data.visibleText || '').substring(0, 1000);
 
-  return `URL: ${data.url}
-Titel: ${data.title}
-H1: ${data.h1.slice(0, 3).join(', ')}
-Meta: ${data.metaDescription.substring(0, 200)}
-Formulär: ${forms || 'Inga'}
-Knappar: ${buttons || 'Inga'}
-Läckor: ${leaks || 'Inga'}
-Text: ${visibleText}`;
+  // Build compact prompt
+  const parts = [
+    data.url,
+    `T:${(data.title || '').substring(0, 60)}`,
+    `H1:${(data.h1[0] || '').substring(0, 60)}`,
+    `Meta:${(data.metaDescription || '').substring(0, 80)}`,
+    `Form:${formInfo}`,
+    `CTA:${ctaButtons.substring(0, 50)}`,
+    `Leaks:${leaks || 'Inga'}`,
+    visibleText
+  ];
+
+  return parts.join('|');
 }
 
 function parseCategories(res: any, scrapedData: ScrapedData): AnalysisCategory[] {
@@ -424,13 +364,13 @@ async function callGrok(apiKey: string, system: string, user: string): Promise<a
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-3-fast',
+        model: 'grok-4-fast',  // Newest fast model
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: user }
         ],
         temperature: 0.1,
-        max_tokens: 3000  // More tokens for 10 categories
+        max_tokens: 2000  // Reduced for speed
       }),
       signal: controller.signal
     });
