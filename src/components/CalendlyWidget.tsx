@@ -13,7 +13,7 @@ export default function CalendlyWidget() {
                     // @ts-expect-error Calendly is loaded from external script
                     Calendly.initBadgeWidget({
                         url: 'https://calendly.com/stefan-245/30min',
-                        text: 'Boka konsultation',
+                        text: 'Boka konsultation: få fler kvalificerade leads →',
                         color: '#10b981',
                         textColor: '#ffffff',
                         branding: false
