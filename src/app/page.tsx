@@ -346,7 +346,7 @@ export default function Home() {
                                         method="POST"
                                         data-netlify="true"
                                         action="/tack"
-                                        className="flex flex-col sm:flex-row gap-4"
+                                        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
                                     >
                                         <input type="hidden" name="form-name" value="guide-download" />
                                         <input
@@ -354,12 +354,29 @@ export default function Home() {
                                             name="email"
                                             placeholder="Din e-postadress"
                                             required
-                                            className="guide-form-input"
+                                            style={{
+                                                width: '100%',
+                                                padding: '12px 16px',
+                                                backgroundColor: '#e5e7eb',
+                                                border: '2px solid #9ca3af',
+                                                borderRadius: '8px',
+                                                color: '#111827',
+                                                fontSize: '16px',
+                                            }}
                                         />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
-                                            className="guide-form-button"
+                                            style={{
+                                                padding: '12px 24px',
+                                                backgroundColor: '#10b981',
+                                                color: 'white',
+                                                fontWeight: 600,
+                                                borderRadius: '8px',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                fontSize: '16px',
+                                            }}
                                         >
                                             Hämta guiden
                                         </button>
