@@ -199,10 +199,12 @@ function generateLocalSummary(categories: any[], scrapedData: ScrapedData) {
 
 async function callGrok(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout
+  const timeout = setTimeout(() => controller.abort(), 20000); // 20s timeout
 
   try {
-    console.log("Calling Grok API...");
+    console.log("Calling Grok API (full)...");
+    console.log("System prompt length:", system.length);
+    console.log("User prompt length:", user.length);
     const startTime = Date.now();
 
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -246,8 +248,10 @@ async function callGrok(apiKey: string, system: string, user: string): Promise<a
       return { c: [] };
     }
 
-    console.log("Grok success, parsing JSON...");
-    return JSON.parse(jsonMatch[0]);
+    console.log("Grok success, parsing JSON:", jsonMatch[0].substring(0, 200));
+    const parsed = JSON.parse(jsonMatch[0]);
+    console.log("Parsed categories count:", parsed.c?.length || 0);
+    return parsed;
   } catch (e) {
     clearTimeout(timeout);
     console.error("Grok API failed:", e instanceof Error ? e.message : e);
