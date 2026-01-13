@@ -9,5 +9,11 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Extend function timeout for API routes (max 26s on free tier, 60s on Pro)
+[functions]
+  # Include all Next.js API routes
+  included_files = ["src/app/api/**"]
+
 # Environment variables (set these in Netlify dashboard)
-# OPENAI_API_KEY = "your-key-here"
+# XAI_API_KEY = "your-grok-key"
+# SCRAPFLY_API_KEY = "your-scrapfly-key"

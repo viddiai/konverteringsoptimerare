@@ -270,26 +270,22 @@ export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGene
 }
 
 function formatFullPrompt(data: ScrapedData): string {
-  // Include more data for full analysis
-  const leaks = data.localLeaks.map(l => `${l.type}: ${l.details}`).join('\n');
-  const forms = data.forms.map(f => `Formulär: ${f.fields.length} fält, knapp: "${f.submitText}"`).join('\n');
-  const buttons = data.buttons.slice(0, 10).join(', ');
+  // Compact format for faster API response
+  const leaks = data.localLeaks.slice(0, 3).map(l => `${l.type}: ${l.details}`).join('; ');
+  const forms = data.forms.slice(0, 2).map(f => `${f.fields.length} fält, knapp: "${f.submitText}"`).join('; ');
+  const buttons = data.buttons.slice(0, 5).join(', ');
+
+  // Limit text to 1500 chars for faster processing
+  const visibleText = data.visibleText.substring(0, 1500);
 
   return `URL: ${data.url}
 Titel: ${data.title}
-H1-rubriker: ${data.h1.join(', ')}
-Meta-beskrivning: ${data.metaDescription}
-
-FORMULÄR:
-${forms || 'Inga formulär hittade'}
-
-KNAPPAR: ${buttons || 'Inga knappar'}
-
-LOKALT DETEKTERADE LÄCKOR:
-${leaks || 'Inga mailto/PDF-läckor hittade'}
-
-SYNLIG TEXT (första 2000 tecken):
-${data.visibleText.substring(0, 2000)}`;
+H1: ${data.h1.slice(0, 3).join(', ')}
+Meta: ${data.metaDescription.substring(0, 200)}
+Formulär: ${forms || 'Inga'}
+Knappar: ${buttons || 'Inga'}
+Läckor: ${leaks || 'Inga'}
+Text: ${visibleText}`;
 }
 
 function parseCategories(res: any, scrapedData: ScrapedData): AnalysisCategory[] {
@@ -413,7 +409,7 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
 
 async function callGrok(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 45000); // 45s timeout for full analysis
+  const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout (Netlify limit)
 
   try {
     console.log("Calling Grok API (full, 10 categories)...");
