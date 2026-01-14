@@ -139,7 +139,7 @@ async function callClaudeQuick(apiKey: string, system: string, user: string): Pr
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-20250514',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 500,
         system: system,
         messages: [
@@ -365,7 +365,7 @@ async function callClaude(apiKey: string, system: string, user: string): Promise
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-20250514',
+        model: 'claude-3-5-haiku-20241022',
         max_tokens: 2000,
         system: system,
         messages: [
