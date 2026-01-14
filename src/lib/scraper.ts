@@ -22,14 +22,14 @@ export async function scrapeQuick(url: string): Promise<ScrapedData> {
     }
 
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000); // 2s timeout!
+    const timeout = setTimeout(() => controller.abort(), 4000); // 4s timeout for slow servers
 
     try {
         const res = await fetch(normalizedUrl, {
             signal: controller.signal,
             headers: {
-                'User-Agent': 'Mozilla/5.0 (compatible; Bot/1.0)',
-                'Accept': 'text/html',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Accept': 'text/html,application/xhtml+xml',
             },
             redirect: 'follow',
         });
@@ -119,16 +119,15 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
 
     // Strategy: Try direct fetch first (fast), use Scrapfly only when truly needed
     try {
-        // Fast direct fetch (2s timeout)
         const directResult = await scrapeDirectFast(normalizedUrl);
-        // Raised threshold: only fallback to Scrapfly if content is truly thin
-        // Most static sites have 500+ chars, JS-heavy SPAs often have <100
-        if (directResult.visibleText.length > 100 && directResult.h1.length > 0) {
+        // Only fallback to Scrapfly if content is truly thin (JS-only SPAs)
+        // WordPress/Divi sites have content in HTML even without JS
+        if (directResult.visibleText.length > 200) {
             console.log("Scraper: Direct fetch success, text length:", directResult.visibleText.length);
             scrapeCache.set(cacheKey, { data: directResult, timestamp: Date.now() });
             return directResult;
         }
-        console.log("Scraper: Direct fetch got thin content (" + directResult.visibleText.length + " chars, " + directResult.h1.length + " h1s), trying Scrapfly...");
+        console.log("Scraper: Direct fetch got thin content (" + directResult.visibleText.length + " chars), trying Scrapfly...");
     } catch (e) {
         console.log("Scraper: Direct fetch failed, trying Scrapfly...", e instanceof Error ? e.message : e);
     }
@@ -148,11 +147,11 @@ export async function scrapeWebsite(url: string): Promise<ScrapedData> {
 }
 
 /**
- * Fast direct fetch without JS rendering (2s timeout)
+ * Fast direct fetch without JS rendering (5s timeout)
  */
 async function scrapeDirectFast(url: string): Promise<ScrapedData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 2000);
+    const timeout = setTimeout(() => controller.abort(), 5000); // 5s for slow WordPress servers
 
     try {
         const res = await fetch(url, {
