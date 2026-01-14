@@ -10,6 +10,7 @@ export interface StoredAnalysis {
     overallCategory: string;
     problemTags: string[];
     leakingFunnels: string[];
+    fullReport: AnalysisResult; // Store full report for viewing
 }
 
 const ANALYSIS_IDS_KEY = 'analysis:ids';
@@ -60,6 +61,7 @@ export async function storeAnalysis(
         overallCategory: analysis.overall_category,
         problemTags,
         leakingFunnels,
+        fullReport: analysis,
     };
 
     // Store in Vercel KV if configured
@@ -72,6 +74,13 @@ export async function storeAnalysis(
     }
 
     return stored;
+}
+
+export async function getAnalysisById(id: string): Promise<StoredAnalysis | null> {
+    const kv = await getKV();
+    if (!kv) return null;
+
+    return await kv.get<StoredAnalysis>(`analysis:${id}`);
 }
 
 export async function getAllAnalyses(): Promise<StoredAnalysis[]> {
@@ -132,10 +141,10 @@ export async function getAnalysisStats() {
         categoryBreakdown[analysis.overallCategory] = (categoryBreakdown[analysis.overallCategory] || 0) + 1;
     }
 
-    // Sort by date descending
-    const sortedAnalyses = [...analyses].sort(
-        (a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime()
-    );
+    // Sort by date descending (exclude fullReport from list to save bandwidth)
+    const sortedAnalyses = [...analyses]
+        .sort((a, b) => new Date(b.analyzedAt).getTime() - new Date(a.analyzedAt).getTime())
+        .map(({ fullReport, ...rest }) => rest);
 
     return {
         totalAnalyses: total,

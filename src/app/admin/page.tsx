@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, Users, TrendingUp, AlertTriangle, Loader2, ArrowLeft, LogOut, Search } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, AlertTriangle, Loader2, ArrowLeft, LogOut, Search, Eye, X } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -36,6 +36,27 @@ interface AdminStats {
     recentAnalyses: RecentAnalysis[];
 }
 
+interface FullReport {
+    id: string;
+    email: string;
+    firstName: string;
+    fullReport: {
+        url: string;
+        overall_score: number;
+        overall_score_rounded: string;
+        overall_category: string;
+        overall_summary: string;
+        categories: Array<{
+            id: string;
+            name: string;
+            score: number;
+            status: string;
+            problems: Array<{ description: string; recommendation: string }>;
+            strength_reason?: string;
+        }>;
+    };
+}
+
 const PROBLEM_LABELS: Record<string, string> = {
     no_lead_magnet: 'Ingen leadmagnet',
     no_social_proof: 'Ingen social proof',
@@ -60,6 +81,8 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [selectedReport, setSelectedReport] = useState<FullReport | null>(null);
+    const [loadingReport, setLoadingReport] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -82,6 +105,21 @@ export default function AdminDashboard() {
         await fetch('/api/admin/logout', { method: 'POST' });
         router.push('/admin/login');
         router.refresh();
+    };
+
+    const handleViewReport = async (id: string) => {
+        setLoadingReport(true);
+        try {
+            const response = await fetch(`/api/admin/report?id=${id}`);
+            if (response.ok) {
+                const data = await response.json();
+                setSelectedReport(data);
+            }
+        } catch (err) {
+            console.error('Failed to load report:', err);
+        } finally {
+            setLoadingReport(false);
+        }
     };
 
     const getScoreColor = (score: number) => {
@@ -289,6 +327,7 @@ export default function AdminDashboard() {
                                     <th className="pb-4">Betyg</th>
                                     <th className="pb-4">Kategori</th>
                                     <th className="pb-4">Datum</th>
+                                    <th className="pb-4">Rapport</th>
                                 </tr>
                             </thead>
                             <tbody className="text-sm">
@@ -317,6 +356,15 @@ export default function AdminDashboard() {
                                         <td className="py-3 text-neutral-500">
                                             {new Date(analysis.analyzedAt).toLocaleDateString('sv-SE')}
                                         </td>
+                                        <td className="py-3">
+                                            <button
+                                                onClick={() => handleViewReport(analysis.id)}
+                                                className="flex items-center gap-1 px-2 py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded transition-colors text-xs"
+                                            >
+                                                <Eye className="w-3 h-3" />
+                                                Visa
+                                            </button>
+                                        </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -329,6 +377,82 @@ export default function AdminDashboard() {
                     </div>
                 </div>
             </div>
+
+            {/* Report Modal */}
+            {(selectedReport || loadingReport) && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="bg-[#161b22] rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden border border-white/10">
+                        <div className="flex items-center justify-between p-6 border-b border-white/10">
+                            <div>
+                                <h2 className="text-xl font-bold">Analysrapport</h2>
+                                {selectedReport && (
+                                    <p className="text-neutral-400 text-sm mt-1">
+                                        {selectedReport.firstName} ({selectedReport.email})
+                                    </p>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => setSelectedReport(null)}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 overflow-y-auto max-h-[calc(90vh-100px)]">
+                            {loadingReport ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+                                </div>
+                            ) : selectedReport?.fullReport ? (
+                                <div className="space-y-6">
+                                    {/* Score */}
+                                    <div className="text-center p-6 bg-[#0d1117] rounded-xl">
+                                        <div className="flex items-baseline justify-center gap-1">
+                                            <span className={`text-5xl font-bold ${getScoreColor(selectedReport.fullReport.overall_score)}`}>
+                                                {selectedReport.fullReport.overall_score_rounded}
+                                            </span>
+                                            <span className="text-2xl text-neutral-500">/5</span>
+                                        </div>
+                                        <p className="text-lg text-neutral-300 mt-2">{selectedReport.fullReport.overall_category}</p>
+                                        <p className="text-neutral-500 text-sm mt-2">{selectedReport.fullReport.overall_summary}</p>
+                                    </div>
+
+                                    {/* Categories */}
+                                    <div className="space-y-4">
+                                        {selectedReport.fullReport.categories.map((cat) => (
+                                            <div key={cat.id} className={`p-4 rounded-xl border ${cat.status === 'critical' ? 'border-red-500/30 bg-red-500/5' :
+                                                cat.status === 'improvement' ? 'border-yellow-500/30 bg-yellow-500/5' :
+                                                    'border-emerald-500/30 bg-emerald-500/5'
+                                                }`}>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="font-medium">{cat.name}</span>
+                                                    <span className={`font-bold ${getScoreColor(cat.score)}`}>{cat.score}/5</span>
+                                                </div>
+                                                {cat.problems.length > 0 && (
+                                                    <div className="space-y-2 mt-3">
+                                                        {cat.problems.map((p, i) => (
+                                                            <div key={i} className="text-sm">
+                                                                <p className="text-neutral-300">{p.description}</p>
+                                                                <p className="text-emerald-400 text-xs mt-1">{p.recommendation}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {cat.strength_reason && (
+                                                    <p className="text-emerald-400 text-sm mt-2">{cat.strength_reason}</p>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <p className="text-neutral-500 text-center py-8">Kunde inte ladda rapporten</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
