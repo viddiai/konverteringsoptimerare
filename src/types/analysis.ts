@@ -19,6 +19,7 @@ export interface AnalysisCategory {
     weighted_score: number;
     status: 'critical' | 'improvement' | 'good' | 'neutral' | 'not_identified';
     problems: AnalysisProblem[];
+    strength_reason?: string;  // Förklaring varför detta är en styrka (för kategorier med 4-5 poäng)
 }
 
 export interface ActionItem {

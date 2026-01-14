@@ -73,18 +73,19 @@ STATUS baserat på poäng:
 FÖR VARJE KATEGORI, inkludera:
 - d (description): Detaljerad beskrivning av problemet (minst 20 ord)
 - r (recommendation): Konkret åtgärdsförslag (minst 15 ord)
+- g (good_reason): För kategorier med poäng 4-5, förklara VARFÖR det är bra (minst 15 ord)
 
 EXAKT JSON-FORMAT (alla 10 kategorier krävs):
 {"c":[
   {"id":"value_proposition","s":3,"st":"improvement","p":[{"d":"Detaljerad problembeskrivning här...","r":"Konkret rekommendation här..."}]},
-  {"id":"call_to_action","s":4,"st":"good","p":[]},
+  {"id":"call_to_action","s":4,"st":"good","g":"Webbplatsen har tydliga CTA-knappar med handlingsorienterat språk som sticker ut visuellt...","p":[]},
   {"id":"social_proof","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
   {"id":"lead_capture","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
   {"id":"form_design","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]},
   {"id":"guarantees","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
   {"id":"urgency_scarcity","s":3,"st":"neutral","p":[]},
   {"id":"process_clarity","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]},
-  {"id":"content_architecture","s":4,"st":"good","p":[]},
+  {"id":"content_architecture","s":4,"st":"good","g":"Innehållet är logiskt strukturerat med tydlig hierarki...","p":[]},
   {"id":"offer_structure","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]}
 ]}
 
@@ -92,6 +93,7 @@ REGLER:
 - Returnera EXAKT 10 kategorier, inga fler, inga färre
 - Använd EXAKT dessa id-strängar (inga nummer, inga variationer)
 - Varje kategori med poäng 1-3 MÅSTE ha minst ett problem med d och r
+- Varje kategori med poäng 4-5 MÅSTE ha g (good_reason) som förklarar varför det är bra
 - Skriv på svenska
 - Endast JSON, ingen annan text`;
 
@@ -298,7 +300,8 @@ function parseCategories(res: any, scrapedData: ScrapedData): AnalysisCategory[]
       weighted_score: (cat.s || 3) * def.weight,
       score: cat.s || 3,
       status: cat.st || 'improvement',
-      problems
+      problems,
+      strength_reason: cat.g || undefined  // good_reason för styrkor
     });
   }
 

@@ -880,20 +880,27 @@ export default function Home() {
                                     Styrkor
                                 </h2>
                             </div>
-                            <div className="bg-[#0d1117] border border-emerald-500/20 rounded-xl p-5">
-                                <div className="grid gap-3">
-                                    {goodCategories.map((category) => (
-                                        <div key={category.id} className="flex items-center gap-3 bg-[#161b22] rounded-lg p-3">
-                                            <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                                                <span className="text-sm">{category.icon}</span>
+                            <div className="space-y-3">
+                                {goodCategories.map((category) => (
+                                    <div key={category.id} className="bg-[#0d1117] border border-emerald-500/20 rounded-xl overflow-hidden">
+                                        <div className="px-5 py-4 flex items-center justify-between">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-9 h-9 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                                    <span className="text-base">{category.icon}</span>
+                                                </div>
+                                                <span className="font-medium text-white">{category.name}</span>
                                             </div>
-                                            <div className="flex-1 min-w-0">
-                                                <span className="text-white/90 text-sm font-medium">{category.name}</span>
-                                            </div>
-                                            <span className="text-emerald-400 text-sm font-semibold">{category.score}/5</span>
+                                            <span className="text-emerald-400 font-semibold text-sm">{category.score}/5</span>
                                         </div>
-                                    ))}
-                                </div>
+                                        {category.strength_reason && (
+                                            <div className="px-5 pb-4 pt-1 border-t border-white/5">
+                                                <p className="text-white/60 text-sm leading-relaxed">
+                                                    {category.strength_reason}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

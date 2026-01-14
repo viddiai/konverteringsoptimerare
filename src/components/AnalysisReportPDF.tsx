@@ -227,24 +227,27 @@ const styles = StyleSheet.create({
         lineHeight: 1.5,
     },
     // Strengths Section
-    strengthsCard: {
+    strengthCard: {
         backgroundColor: colors.cardBg,
         borderRadius: 10,
-        padding: 16,
+        marginBottom: 8,
         borderWidth: 1,
         borderColor: 'rgba(16, 185, 129, 0.2)',
+        overflow: 'hidden',
     },
-    strengthItem: {
+    strengthHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.background,
-        borderRadius: 6,
-        padding: 10,
-        marginBottom: 6,
+        justifyContent: 'space-between',
+        padding: 12,
+    },
+    strengthLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
     },
     strengthIconBox: {
-        width: 24,
-        height: 24,
+        width: 26,
+        height: 26,
         backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderRadius: 6,
         justifyContent: 'center',
@@ -252,14 +255,26 @@ const styles = StyleSheet.create({
         marginRight: 10,
     },
     strengthName: {
-        flex: 1,
-        fontSize: 9,
-        color: colors.white90,
+        fontSize: 10,
+        fontWeight: 'bold',
+        color: colors.white,
     },
     strengthScore: {
-        fontSize: 9,
+        fontSize: 10,
         fontWeight: 'bold',
         color: colors.emerald,
+    },
+    strengthReasonContainer: {
+        paddingHorizontal: 12,
+        paddingBottom: 12,
+        paddingTop: 8,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+    },
+    strengthReason: {
+        fontSize: 9,
+        color: colors.white70,
+        lineHeight: 1.5,
     },
     // Action List
     actionCard: {
@@ -486,17 +501,24 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
                                 <View style={[styles.sectionDot, { backgroundColor: colors.emerald }]} />
                                 <Text style={styles.sectionTitle}>Styrkor</Text>
                             </View>
-                            <View style={styles.strengthsCard}>
-                                {goodCategories.map((category) => (
-                                    <View key={category.id} style={styles.strengthItem}>
-                                        <View style={styles.strengthIconBox}>
-                                            <Text style={{ fontSize: 10 }}>{category.icon}</Text>
+                            {goodCategories.map((category) => (
+                                <View key={category.id} style={styles.strengthCard}>
+                                    <View style={styles.strengthHeader}>
+                                        <View style={styles.strengthLeft}>
+                                            <View style={styles.strengthIconBox}>
+                                                <Text style={{ fontSize: 11 }}>{category.icon}</Text>
+                                            </View>
+                                            <Text style={styles.strengthName}>{category.name}</Text>
                                         </View>
-                                        <Text style={styles.strengthName}>{category.name}</Text>
                                         <Text style={styles.strengthScore}>{category.score}/5</Text>
                                     </View>
-                                ))}
-                            </View>
+                                    {category.strength_reason && (
+                                        <View style={styles.strengthReasonContainer}>
+                                            <Text style={styles.strengthReason}>{category.strength_reason}</Text>
+                                        </View>
+                                    )}
+                                </View>
+                            ))}
                         </>
                     )}
 
