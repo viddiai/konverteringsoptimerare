@@ -384,18 +384,12 @@ export default function Home() {
                         <div className="bg-[#0d1117] border border-white/10 rounded-2xl overflow-hidden">
                             <div className="flex flex-col md:flex-row">
                                 {/* Book Cover - Left Side */}
-                                <div className="w-full md:w-2/5 p-8 md:p-12 bg-[#161b22] flex flex-col items-center justify-center">
-                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
-                                        <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                                            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                                        </svg>
-                                    </div>
-                                    <h3 className="text-xl font-semibold text-white text-center mb-2">
-                                        7 beprövade sätt att öka konverteringen och vinna fler affärer
-                                    </h3>
-                                    <p className="text-white/50 text-sm text-center">
-                                        En strategisk guide för VD:ar och säljchefer på medelstora svenska företag
-                                    </p>
+                                <div className="w-full md:w-2/5 p-8 md:p-12 flex items-center justify-center">
+                                    <img
+                                        src="/omslag.png"
+                                        alt="7 beprövade sätt att öka konverteringen och vinna fler affärer - Guide"
+                                        className="w-full max-w-[280px] rounded-lg shadow-2xl"
+                                    />
                                 </div>
 
                                 {/* Content - Right Side */}
@@ -404,28 +398,52 @@ export default function Home() {
                                         7 beprövade sätt att öka konverteringen och vinna fler affärer
                                     </h2>
 
-                                    <p className="text-white/70 mb-6 font-medium">
+                                    <p className="text-white/90 mb-4 font-medium">
                                         Denna guide ger dig
                                     </p>
 
-                                    <p className="text-white/50 mb-4 text-sm">
+                                    <p className="text-white/50 mb-3 text-sm">
                                         Konkreta verktyg för att:
                                     </p>
 
-                                    <ul className="space-y-3 text-white/70 mb-8">
+                                    <ul className="space-y-2 text-white/70 mb-6 text-sm">
                                         <li className="flex items-start gap-3">
-                                            <span className="text-emerald-400 mt-1">•</span>
+                                            <span className="text-emerald-400 mt-0.5">•</span>
                                             <span>Formulera ett värdeerbjudande som faktiskt övertygar svenska beslutsfattare</span>
                                         </li>
                                         <li className="flex items-start gap-3">
-                                            <span className="text-emerald-400 mt-1">•</span>
+                                            <span className="text-emerald-400 mt-0.5">•</span>
                                             <span>Fånga upp potentiella kunder innan de är redo att köpa</span>
                                         </li>
                                         <li className="flex items-start gap-3">
-                                            <span className="text-emerald-400 mt-1">•</span>
+                                            <span className="text-emerald-400 mt-0.5">•</span>
                                             <span>Eliminera friktion som dödar affärer</span>
                                         </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-0.5">•</span>
+                                            <span>Bygga systematiskt förtroende genom sociala bevis</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-0.5">•</span>
+                                            <span>Skapa handlingsdriven kommunikation som leder till avslut</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-0.5">•</span>
+                                            <span>Strukturera komplex information utan att överväldiga</span>
+                                        </li>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-0.5">•</span>
+                                            <span>Använda avancerade strategier för dramatisk tillväxt</span>
+                                        </li>
                                     </ul>
+
+                                    {/* Kom ihåg box */}
+                                    <div className="flex items-start gap-3 bg-white/5 rounded-lg p-4 mb-6">
+                                        <span className="text-xl">💡</span>
+                                        <p className="text-white/60 text-sm">
+                                            Kom ihåg: Varje kapitel avslutas med &quot;3 saker du kan göra imorgon&quot; – konkreta åtgärder som ger omedelbar effekt.
+                                        </p>
+                                    </div>
 
                                     <form
                                         name="guide-download"
@@ -450,6 +468,10 @@ export default function Home() {
                                             Hämta guiden
                                         </button>
                                     </form>
+
+                                    <p className="text-white/30 text-xs mt-4">
+                                        Vi behandlar dina uppgifter enligt vår integritetspolicy.
+                                    </p>
                                 </div>
                             </div>
                         </div>
