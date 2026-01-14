@@ -1,4 +1,3 @@
-import { kv } from '@vercel/kv';
 import { AnalysisResult } from '@/types/analysis';
 
 export interface StoredAnalysis {
@@ -14,6 +13,20 @@ export interface StoredAnalysis {
 }
 
 const ANALYSIS_IDS_KEY = 'analysis:ids';
+
+// Check if KV is configured
+function isKVConfigured(): boolean {
+    return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+}
+
+// Dynamic import to avoid errors when KV is not configured
+async function getKV() {
+    if (!isKVConfigured()) {
+        return null;
+    }
+    const { kv } = await import('@vercel/kv');
+    return kv;
+}
 
 export async function storeAnalysis(
     analysis: AnalysisResult,
@@ -47,14 +60,24 @@ export async function storeAnalysis(
         leakingFunnels,
     };
 
-    // Store in Vercel KV
-    await kv.set(`analysis:${id}`, stored);
-    await kv.lpush(ANALYSIS_IDS_KEY, id);
+    // Store in Vercel KV if configured
+    const kv = await getKV();
+    if (kv) {
+        await kv.set(`analysis:${id}`, stored);
+        await kv.lpush(ANALYSIS_IDS_KEY, id);
+    } else {
+        console.warn('Vercel KV not configured - registration not saved');
+    }
 
     return stored;
 }
 
 export async function getAllAnalyses(): Promise<StoredAnalysis[]> {
+    const kv = await getKV();
+    if (!kv) {
+        return [];
+    }
+
     const ids = await kv.lrange<string>(ANALYSIS_IDS_KEY, 0, -1);
     if (!ids || ids.length === 0) return [];
 
@@ -118,6 +141,6 @@ export async function getAnalysisStats() {
         topProblems,
         topLeakingFunnels,
         categoryBreakdown,
-        recentAnalyses: sortedAnalyses.slice(0, 10),
+        recentAnalyses: sortedAnalyses,
     };
 }
