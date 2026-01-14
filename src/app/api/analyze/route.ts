@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { scrapeWebsite, scrapeQuick } from '@/lib/scraper';
 import { analyzeWebsiteStream, analyzeQuick } from '@/lib/analyzer';
 
-// Allow up to 60 seconds for JS-heavy sites that need Scrapfly rendering
-export const maxDuration = 60;
+// Vercel Pro: Allow up to 120 seconds for JS-heavy sites that need Scrapfly rendering
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
     try {

@@ -109,11 +109,11 @@ export default function Home() {
             setCurrentTipIndex((prev) => (prev + 1) % LOADING_TIPS.length);
         }, 4000);
 
-        // Client-side timeout to prevent infinite loading
+        // Client-side timeout to prevent infinite loading (matches Vercel Pro maxDuration)
         const controller = new AbortController();
         const clientTimeout = setTimeout(() => {
             controller.abort();
-        }, 45000); // 45 second max
+        }, 90000); // 90 second max
 
         try {
             const response = await fetch('/api/analyze', {
