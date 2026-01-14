@@ -865,8 +865,9 @@ export default function Home() {
                             </div>
                             <div className="space-y-3">
                                 {improvementCategories.map(category => (
-                                    <details key={category.id} className="bg-[#0d1117] border border-yellow-500/20 rounded-xl group">
-                                        <summary className="px-5 py-4 cursor-pointer flex items-center justify-between hover:bg-white/[0.02] transition-colors">
+                                    <div key={category.id} className="bg-[#0d1117] border border-yellow-500/20 rounded-xl overflow-hidden">
+                                        {/* Category Header */}
+                                        <div className="px-5 py-4 flex items-center justify-between border-b border-white/5">
                                             <div className="flex items-center gap-3">
                                                 <div className="w-9 h-9 bg-yellow-500/10 rounded-lg flex items-center justify-center">
                                                     <span className="text-base">{category.icon}</span>
@@ -874,8 +875,9 @@ export default function Home() {
                                                 <span className="font-medium text-white">{category.name}</span>
                                             </div>
                                             <span className="text-yellow-400 font-semibold text-sm">{category.score}/5</span>
-                                        </summary>
-                                        <div className="px-5 pb-4 pt-1 border-t border-white/5 space-y-3">
+                                        </div>
+                                        {/* Problems */}
+                                        <div className="px-5 py-4 space-y-3">
                                             {category.problems.map((problem, i) => (
                                                 <div key={i} className="bg-[#161b22] rounded-lg p-4">
                                                     <p className="text-white/70 text-sm mb-3">
@@ -887,7 +889,7 @@ export default function Home() {
                                                 </div>
                                             ))}
                                         </div>
-                                    </details>
+                                    </div>
                                 ))}
                             </div>
                         </div>
