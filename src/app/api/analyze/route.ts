@@ -33,10 +33,15 @@ export async function POST(request: NextRequest) {
                     const quickData = await scrapeQuick(url);
 
                     // ========== PHASE 1: Quick Analysis ==========
-                    if (quickData.visibleText) {
+                    if (quickData.visibleText && quickData.visibleText.length > 50) {
                         send({ type: 'progress', data: { step: 'quick_analyzing', message: 'Snabbanalyserar...' } });
                         const quickResult = await analyzeQuick(quickData);
                         send({ type: 'quick_result', data: quickResult });
+                    } else {
+                        // JS-heavy site or scrape failed - send placeholder quick result
+                        // so UI can show teaser state while full analysis runs
+                        send({ type: 'progress', data: { step: 'quick_analyzing', message: 'JS-tung webbplats, kör fullständig analys...' } });
+                        send({ type: 'quick_result', data: { score: 3, problems: [{ category: 'Analys', problem: 'Webbplatsen kräver JavaScript-rendering', status: 'neutral' }] } });
                     }
 
                     // ========== PHASE 2: Full Analysis (scrape already running) ==========
