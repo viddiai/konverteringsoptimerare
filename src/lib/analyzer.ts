@@ -73,13 +73,13 @@ export interface QuickAnalysisResult {
  * Analyzes only 3 key categories for instant feedback
  */
 export async function analyzeQuick(scrapedData: ScrapedData): Promise<QuickAnalysisResult> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) throw new Error('XAI_API_KEY is not configured');
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
   const userPrompt = formatQuickPrompt(scrapedData);
 
   try {
-    const res = await callGrokQuick(apiKey, QUICK_PROMPT, userPrompt);
+    const res = await callClaudeQuick(apiKey, QUICK_PROMPT, userPrompt);
 
     const categories = (res.c || []).map((cat: any) => {
       const def = CATEGORY_DEFINITIONS[cat.id] || { name: cat.id, weight: 1.0 };
@@ -121,45 +121,45 @@ Text: ${data.visibleText.substring(0, 500)}`;
 }
 
 /**
- * Quick Grok API call with shorter timeout
+ * Quick Claude Haiku API call with shorter timeout
  */
-async function callGrokQuick(apiKey: string, system: string, user: string): Promise<any> {
+async function callClaudeQuick(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout for quick
 
   try {
-    console.log("Calling Grok API (quick)...");
+    console.log("Calling Claude Haiku API (quick)...");
     const startTime = Date.now();
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'grok-4-fast',  // Newest fast model
+        model: 'claude-haiku-4-20250514',
+        max_tokens: 500,
+        system: system,
         messages: [
-          { role: 'system', content: system },
           { role: 'user', content: user }
-        ],
-        temperature: 0.1,
-        max_tokens: 500
+        ]
       }),
       signal: controller.signal
     });
 
     clearTimeout(timeout);
-    console.log(`Grok quick response in ${Date.now() - startTime}ms`);
+    console.log(`Claude Haiku quick response in ${Date.now() - startTime}ms`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Grok API error:", response.status, errorText);
+      console.error("Claude API error:", response.status, errorText);
       return { c: [] };
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.content?.[0]?.text;
     if (!content) return { c: [] };
 
     const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -168,7 +168,7 @@ async function callGrokQuick(apiKey: string, system: string, user: string): Prom
     return JSON.parse(jsonMatch[0]);
   } catch (e) {
     clearTimeout(timeout);
-    console.error("Grok quick API failed:", e instanceof Error ? e.message : e);
+    console.error("Claude quick API failed:", e instanceof Error ? e.message : e);
     return { c: [] };
   }
 }
@@ -178,8 +178,8 @@ async function callGrokQuick(apiKey: string, system: string, user: string): Prom
  * Streams results as they become available
  */
 export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGenerator<any> {
-  const apiKey = process.env.XAI_API_KEY;
-  if (!apiKey) throw new Error('XAI_API_KEY is not configured');
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
   const userPrompt = formatFullPrompt(scrapedData);
 
@@ -187,7 +187,7 @@ export async function* analyzeWebsiteStream(scrapedData: ScrapedData): AsyncGene
 
   try {
     // FULL API CALL - all 10 categories
-    const res = await callGrok(apiKey, FULL_PROMPT, userPrompt);
+    const res = await callClaude(apiKey, FULL_PROMPT, userPrompt);
 
     const categories = parseCategories(res, scrapedData);
 
@@ -347,64 +347,64 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
   };
 }
 
-async function callGrok(apiKey: string, system: string, user: string): Promise<any> {
+async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout (Netlify limit)
+  const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout (Vercel limit)
 
   try {
-    console.log("Calling Grok API (full, 10 categories)...");
+    console.log("Calling Claude Haiku API (full, 10 categories)...");
     console.log("System prompt length:", system.length);
     console.log("User prompt length:", user.length);
     const startTime = Date.now();
 
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'grok-4-fast',  // Newest fast model
+        model: 'claude-haiku-4-20250514',
+        max_tokens: 2000,
+        system: system,
         messages: [
-          { role: 'system', content: system },
           { role: 'user', content: user }
-        ],
-        temperature: 0.1,
-        max_tokens: 2000  // Reduced for speed
+        ]
       }),
       signal: controller.signal
     });
 
     clearTimeout(timeout);
-    console.log(`Grok response in ${Date.now() - startTime}ms, status: ${response.status}`);
+    console.log(`Claude Haiku response in ${Date.now() - startTime}ms, status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Grok API error:", response.status, errorText);
+      console.error("Claude API error:", response.status, errorText);
       return { c: [] };
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
+    const content = data.content?.[0]?.text;
     if (!content) {
-      console.error("Grok empty response:", JSON.stringify(data).substring(0, 500));
+      console.error("Claude empty response:", JSON.stringify(data).substring(0, 500));
       return { c: [] };
     }
 
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      console.error("No JSON found in Grok response:", content.substring(0, 300));
+      console.error("No JSON found in Claude response:", content.substring(0, 300));
       return { c: [] };
     }
 
-    console.log("Grok success, parsing JSON:", jsonMatch[0].substring(0, 300));
+    console.log("Claude success, parsing JSON:", jsonMatch[0].substring(0, 300));
     const parsed = JSON.parse(jsonMatch[0]);
     console.log("Parsed categories count:", parsed.c?.length || 0);
     return parsed;
   } catch (e) {
     clearTimeout(timeout);
-    console.error("Grok API failed:", e instanceof Error ? e.message : e);
+    console.error("Claude API failed:", e instanceof Error ? e.message : e);
     return { c: [] };
   }
 }
