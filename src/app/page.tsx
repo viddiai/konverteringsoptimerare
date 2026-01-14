@@ -505,124 +505,172 @@ export default function Home() {
         );
     }
 
-    // View 3: Teaser (Before Registration)
-    // Can show quickResult first, then update with analysisResult
+    // View 3: Teaser (Before Registration) - Portalfabriken style
     if (appState === 'teaser' && (quickResult || analysisResult)) {
-        // Use full result if available, otherwise quick result
         const displayScore = analysisResult?.overall_score ?? quickResult?.score ?? 3;
         const displayScoreRounded = displayScore.toFixed(1);
         const displayCategory = displayScore < 2 ? 'Kritiskt' : displayScore < 3 ? 'Undermåligt' : displayScore < 3.5 ? 'Godkänt' : displayScore < 4.5 ? 'Bra' : 'Utmärkt';
-
-        // Get problems to display - prefer full categories, fallback to quick problems
         const topProblems = analysisResult ? getTopProblems() : [];
         const quickProblems = quickResult?.problems ?? [];
 
+        // Extract domain name for display
+        const domainName = (() => {
+            try {
+                const urlObj = new URL(url.startsWith('http') ? url : `https://${url}`);
+                return urlObj.hostname.replace('www.', '');
+            } catch {
+                return url;
+            }
+        })();
+
+        // Get meta description or first part of summary
+        const siteDescription = analysisResult?.overall_summary?.split('.')[0] || 'Analyserar din webbplats';
+
         return (
-            <div className="min-h-screen bg-black text-white py-16 relative">
+            <div className="min-h-screen bg-black text-white py-8 md:py-16 relative">
                 <div className="fixed inset-0 -z-10 h-full w-full bg-black">
                     <div className="absolute inset-0 bg-grid-pattern" />
                     <div className="absolute inset-0 bg-glow" />
                 </div>
-                <div className="container mx-auto px-6 max-w-2xl relative z-10">
-                    <div className="text-center mb-8">
-                        <h2 className="text-2xl font-medium mb-2 tracking-tight">
-                            {isLoadingFull ? 'Snabbanalys klar' : 'Analys klar'} för
-                        </h2>
-                        <p className="text-emerald-400">{url}</p>
-                    </div>
 
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 text-center backdrop-blur-md">
-                        <div>
-                            <div className="text-6xl font-bold mb-2">
-                                <span className={getScoreColor(displayScore)}>
-                                    {displayScoreRounded}
-                                </span>
-                                <span className="text-white/30 text-2xl"> / 5</span>
-                            </div>
-                            <div className="text-xl font-medium text-white/70 mb-6">
-                                {displayCategory}
-                            </div>
-                            <div className="w-full bg-white/10 rounded-full h-3 mb-2 overflow-hidden">
-                                <div
-                                    className="bg-emerald-500 h-3 rounded-full transition-all duration-1000"
-                                    style={{ width: `${(displayScore / 5) * 100}%` }}
-                                />
-                            </div>
-                            {isLoadingFull && (
-                                <p className="text-emerald-400 text-sm mt-4 animate-pulse flex items-center justify-center gap-2">
-                                    <Loader2 className="w-4 h-4 animate-spin" />
-                                    Laddar fullständig rapport...
-                                </p>
-                            )}
-                        </div>
-                    </div>
+                <div className="container mx-auto px-4 md:px-6 max-w-xl relative z-10">
+                    {/* Main Card */}
+                    <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-md">
+                        {/* Header */}
+                        <div className="mb-6">
+                            <h1 className="text-lg md:text-xl font-medium text-white/90 mb-4">
+                                Analysera din webbsidas konverteringsförmåga
+                            </h1>
 
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 backdrop-blur-md">
-                        <h3 className="text-xl font-medium mb-6 flex items-center gap-2 tracking-tight">
-                            <span className="text-red-400">🔴</span> De största problemen vi hittade:
-                        </h3>
-                        <div className="space-y-4">
-                            {/* Show full categories if available */}
-                            {topProblems.length > 0 ? (
-                                topProblems.map((category) => (
-                                    <div key={category.id} className="flex items-center justify-between p-4 bg-black/30 rounded-xl border border-white/5">
-                                        <div className="flex items-center gap-3">
-                                            <span className="text-2xl">{category.icon}</span>
-                                            <span className="font-medium">{category.name}</span>
-                                        </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className={`font-bold ${getScoreColor(category.score)}`}>
-                                                {category.score}/5
+                            {/* Site Info with Score */}
+                            <div className="flex items-start justify-between gap-4">
+                                <div>
+                                    <h2 className="text-xl md:text-2xl font-semibold text-white capitalize">
+                                        {domainName.split('.')[0]}
+                                    </h2>
+                                    <p className="text-emerald-400 text-xs uppercase tracking-wider font-medium">
+                                        {domainName}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <div className="flex items-center gap-1">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <span
+                                                key={star}
+                                                className={`text-lg ${star <= Math.round(displayScore) ? 'text-emerald-400' : 'text-white/20'}`}
+                                            >
+                                                ★
                                             </span>
-                                            {getStatusBadge(category.status)}
-                                        </div>
+                                        ))}
                                     </div>
-                                ))
-                            ) : (
-                                /* Show quick problems while loading full */
-                                quickProblems.map((problem, i) => (
-                                    <div key={i} className="p-4 bg-black/30 rounded-xl border border-white/5">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <span className="font-medium">{problem.category}</span>
-                                            {getStatusBadge(problem.status)}
-                                        </div>
-                                        <p className="text-white/60 text-sm">{problem.problem}</p>
-                                    </div>
-                                ))
-                            )}
+                                    <p className="text-white/50 text-sm">{displayScoreRounded}/5</p>
+                                </div>
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 backdrop-blur-md">
-                        <div className="text-center mb-6">
-                            <span className="text-2xl">🔒</span>
-                            <h3 className="text-xl font-medium mt-2 text-white tracking-tight">Registrera dig för att se:</h3>
+                        {/* Site Description */}
+                        <p className="text-white/50 text-sm mb-6 font-light leading-relaxed">
+                            {siteDescription}
+                        </p>
+
+                        {/* Problems Found */}
+                        <div className="bg-[#161b22] border border-white/5 rounded-xl p-4 mb-4">
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-red-500/10 rounded-lg flex items-center justify-center">
+                                        <AlertCircle className="w-4 h-4 text-red-400" />
+                                    </div>
+                                    <span className="font-medium text-white/90">Identifierade problem</span>
+                                </div>
+                                <span className="text-white/40 text-sm">
+                                    {topProblems.length > 0 ? topProblems.filter(c => c.status === 'critical' || c.status === 'improvement').length : quickProblems.length} st
+                                </span>
+                            </div>
+                            <ul className="space-y-2">
+                                {topProblems.length > 0 ? (
+                                    topProblems.slice(0, 2).map((category) => (
+                                        <li key={category.id} className="flex items-start gap-2 text-sm">
+                                            <span className="text-red-400 mt-0.5">•</span>
+                                            <span className="text-white/70">
+                                                {category.problems[0]?.description || `${category.name} behöver förbättras`}
+                                            </span>
+                                        </li>
+                                    ))
+                                ) : (
+                                    quickProblems.slice(0, 2).map((problem, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm">
+                                            <span className="text-red-400 mt-0.5">•</span>
+                                            <span className="text-white/70">{problem.problem}</span>
+                                        </li>
+                                    ))
+                                )}
+                            </ul>
                         </div>
-                        <ul className="space-y-3 mb-8">
-                            <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                <span className="text-white/80">Detaljerade problembeskrivningar</span>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                <span className="text-white/80">Konkreta lösningsförslag</span>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                <span className="text-white/80">Alla 10 analyserade områden</span>
-                            </li>
-                            <li className="flex items-center gap-3">
-                                <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                <span className="text-white/80">Nedladdningsbar PDF-rapport</span>
-                            </li>
-                        </ul>
+
+                        {/* Summary */}
+                        <div className="bg-[#161b22] border border-white/5 rounded-xl p-4 mb-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-8 h-8 bg-white/5 rounded-lg flex items-center justify-center">
+                                    <span className="text-sm">📄</span>
+                                </div>
+                                <span className="font-medium text-white/90">Sammanfattning</span>
+                            </div>
+                            <p className="text-white/60 text-sm font-light leading-relaxed">
+                                {analysisResult?.overall_summary || `${domainName.split('.')[0]} har förbättringsmöjligheter i sin lead generation.`}
+                            </p>
+                        </div>
+
+                        {/* Full Report Preview */}
+                        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 mb-6">
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                                    <span className="text-sm">📊</span>
+                                </div>
+                                <span className="font-medium text-white/90">Den fullständiga rapporten</span>
+                            </div>
+                            <ul className="space-y-2">
+                                <li className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500/70" />
+                                    <span className="text-white/60">Detaljerad analys av leadmagneter och formulär</span>
+                                </li>
+                                <li className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500/70" />
+                                    <span className="text-white/60">Granskning av CTA-knappar och konverteringselement</span>
+                                </li>
+                                <li className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500/70" />
+                                    <span className="text-white/60">Betyg på varje konverteringskriterium</span>
+                                </li>
+                                <li className="flex items-center gap-2 text-sm">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500/70" />
+                                    <span className="text-white/60">{analysisResult?.action_list?.length || 5} konkreta rekommendationer för ökad konvertering</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        {/* CTA Button */}
                         <button
                             onClick={() => setAppState('registration')}
                             disabled={isLoadingFull}
-                            className="w-full py-4 bg-white hover:bg-emerald-100 text-black font-medium rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl transition-all transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            {isLoadingFull ? 'Vänta på fullständig rapport...' : 'Visa min fullständiga rapport'}
+                            {isLoadingFull ? (
+                                <>
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                    Laddar fullständig rapport...
+                                </>
+                            ) : (
+                                <>
+                                    Få den fullständiga rapporten
+                                    <ArrowRight className="w-4 h-4" />
+                                </>
+                            )}
                         </button>
+
+                        {/* Trust Badge */}
+                        <p className="text-center text-white/30 text-xs mt-4">
+                            Gratis • Ingen spam • Levereras direkt
+                        </p>
                     </div>
                 </div>
             </div>
