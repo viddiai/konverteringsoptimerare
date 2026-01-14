@@ -55,6 +55,8 @@ export default function Home() {
     const [progressMessage, setProgressMessage] = useState<string>('Startar...');
     const [quickResult, setQuickResult] = useState<{ score: number; problems: Array<{ category: string; problem: string; status: string }> } | null>(null);
     const [isLoadingFull, setIsLoadingFull] = useState(false);
+    const [guideEmail, setGuideEmail] = useState('');
+    const [isSubmittingGuide, setIsSubmittingGuide] = useState(false);
 
     const heroRef = useScrollAnimation();
     const featuresRef = useScrollAnimation();
@@ -89,6 +91,20 @@ export default function Home() {
             setError('Kunde inte ladda ner PDF. Försök igen.');
         } finally {
             setIsDownloadingPdf(false);
+        }
+    };
+
+    const handleGuideSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!guideEmail.trim()) return;
+
+        setIsSubmittingGuide(true);
+        try {
+            // Redirect to thank you page with email as query param
+            window.location.href = `/tack?email=${encodeURIComponent(guideEmail)}&guide=true`;
+        } catch (err) {
+            console.error('Guide submit error:', err);
+            setIsSubmittingGuide(false);
         }
     };
 
@@ -473,26 +489,23 @@ export default function Home() {
                                     </div>
 
                                     <form
-                                        name="guide-download"
-                                        method="POST"
-                                        data-netlify="true"
-                                        action="/tack"
+                                        onSubmit={handleGuideSubmit}
                                         className="flex flex-col sm:flex-row gap-3"
                                     >
-                                        <input type="hidden" name="form-name" value="guide-download" />
                                         <input
                                             type="email"
-                                            name="email"
+                                            value={guideEmail}
+                                            onChange={(e) => setGuideEmail(e.target.value)}
                                             placeholder="Din e-postadress"
                                             required
                                             className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                                         />
-                                        <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
-                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
+                                            disabled={isSubmittingGuide}
+                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
                                         >
-                                            Hämta guiden
+                                            {isSubmittingGuide ? 'Skickar...' : 'Hämta guiden'}
                                         </button>
                                     </form>
 
