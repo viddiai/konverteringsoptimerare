@@ -733,92 +733,118 @@ export default function Home() {
         );
     }
 
-    // View 5: Full Report
+    // View 5: Full Report - Portalfabriken style
     if (appState === 'report' && analysisResult) {
         const criticalCategories = analysisResult.categories.filter(c => c.status === 'critical');
         const improvementCategories = analysisResult.categories.filter(c => c.status === 'improvement' || c.status === 'neutral' || c.status === 'not_identified');
         const goodCategories = analysisResult.categories.filter(c => c.status === 'good');
 
         return (
-            <div className="min-h-screen bg-black text-white py-8 relative">
+            <div className="min-h-screen bg-black text-white py-6 md:py-10 relative">
                 <div className="fixed inset-0 -z-10 h-full w-full bg-black">
                     <div className="absolute inset-0 bg-grid-pattern" />
                     <div className="absolute inset-0 bg-glow" />
                 </div>
-                <div className="container mx-auto px-6 max-w-4xl relative z-10">
-                    {/* Header */}
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-8 mb-8 backdrop-blur-md">
+
+                <div className="container mx-auto px-4 md:px-6 max-w-3xl relative z-10">
+                    {/* Header Card */}
+                    <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-6 md:p-8 mb-6 backdrop-blur-md">
+                        {/* Top Row */}
                         <div className="flex justify-between items-start mb-6">
-                            <div>
-                                <h1 className="text-2xl font-medium mb-2 tracking-tight">📊 Konverteringsanalys</h1>
-                                <p className="text-white/50">{analysisResult.url}</p>
-                                <p className="text-white/30 text-sm">Genererad: {new Date(analysisResult.analyzed_at).toLocaleDateString('sv-SE')}</p>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+                                    <span className="text-lg">📊</span>
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-semibold text-white">Konverteringsanalys</h1>
+                                    <p className="text-white/40 text-xs">{analysisResult.url}</p>
+                                </div>
                             </div>
                             <button
                                 onClick={handleDownloadPdf}
                                 disabled={isDownloadingPdf}
-                                className="px-4 py-2 bg-white/10 hover:bg-white/20 border border-white/10 rounded-xl text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="px-4 py-2 bg-[#161b22] hover:bg-[#1f2937] border border-white/10 rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-white/70 hover:text-white"
                             >
                                 {isDownloadingPdf ? (
                                     <>
                                         <Loader2 className="w-4 h-4 animate-spin" />
-                                        Genererar...
+                                        <span className="hidden sm:inline">Genererar...</span>
                                     </>
                                 ) : (
-                                    '📥 Ladda ner PDF'
+                                    <>
+                                        <span>📥</span>
+                                        <span className="hidden sm:inline">Ladda ner PDF</span>
+                                    </>
                                 )}
                             </button>
                         </div>
 
-                        <div className="text-center py-8">
-                            <div className="text-7xl font-bold mb-2">
+                        {/* Score Display */}
+                        <div className="text-center py-6">
+                            <div className="text-6xl md:text-7xl font-bold mb-1">
                                 <span className={getScoreColor(analysisResult.overall_score)}>
                                     {analysisResult.overall_score_rounded}
                                 </span>
-                                <span className="text-white/30 text-3xl"> / 5</span>
+                                <span className="text-white/20 text-2xl md:text-3xl">/ 5</span>
                             </div>
-                            <div className="text-2xl font-medium text-white/70 mb-4">
+                            <div className="text-xl font-medium text-white/60 mb-4">
                                 {analysisResult.overall_category}
                             </div>
-                            <div className="w-full max-w-md mx-auto bg-white/10 rounded-full h-4 mb-6">
+
+                            {/* Progress Bar */}
+                            <div className="w-full max-w-sm mx-auto bg-[#161b22] rounded-full h-2.5 mb-6 overflow-hidden">
                                 <div
-                                    className="bg-emerald-500 h-4 rounded-full transition-all duration-500"
+                                    className="bg-emerald-500 h-2.5 rounded-full transition-all duration-700"
                                     style={{ width: `${(analysisResult.overall_score / 5) * 100}%` }}
                                 />
                             </div>
-                            <p className="text-white/60 max-w-2xl mx-auto font-light">{analysisResult.overall_summary}</p>
+
+                            <p className="text-white/50 max-w-xl mx-auto text-sm font-light leading-relaxed">
+                                {analysisResult.overall_summary}
+                            </p>
                         </div>
+
+                        {/* Date */}
+                        <p className="text-center text-white/30 text-xs">
+                            Genererad: {new Date(analysisResult.analyzed_at).toLocaleDateString('sv-SE')}
+                        </p>
                     </div>
 
                     {/* Critical Issues */}
                     {criticalCategories.length > 0 && (
-                        <div className="mb-8">
-                            <h2 className="text-xl font-medium mb-4 flex items-center gap-2 tracking-tight">
-                                <span className="text-red-400">🔴</span> KRITISKA PROBLEM
-                            </h2>
-                            <div className="space-y-4">
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-3 h-3 rounded-full bg-red-500" />
+                                <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+                                    Kritiska problem
+                                </h2>
+                            </div>
+                            <div className="space-y-3">
                                 {criticalCategories.map(category => (
-                                    <div key={category.id} className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 backdrop-blur-md">
-                                        <div className="flex items-center justify-between mb-4">
+                                    <div key={category.id} className="bg-[#0d1117] border border-red-500/20 rounded-xl overflow-hidden">
+                                        {/* Category Header */}
+                                        <div className="px-5 py-4 flex items-center justify-between border-b border-white/5">
                                             <div className="flex items-center gap-3">
-                                                <span className="text-2xl">{category.icon}</span>
-                                                <h3 className="text-lg font-medium">{category.name}</h3>
-                                            </div>
-                                            <span className="text-red-400 font-bold">{category.score}/5</span>
-                                        </div>
-                                        {category.problems.map((problem, i) => (
-                                            <div key={i} className="bg-black/30 rounded-xl p-4 mb-3">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    {problem.severity && getSeverityBadge(problem.severity)}
-                                                    {problem.tag && <span className="text-xs text-white/40 font-mono">{problem.tag}</span>}
+                                                <div className="w-9 h-9 bg-red-500/10 rounded-lg flex items-center justify-center">
+                                                    <span className="text-base">{category.icon}</span>
                                                 </div>
-                                                <p className="text-white/70 mb-2"><strong className="text-white">Problem:</strong> {problem.description}</p>
-                                                {problem.evidence && (
-                                                    <p className="text-white/50 text-sm mb-2 italic">📍 {problem.evidence}</p>
-                                                )}
-                                                <p className="text-emerald-400"><strong>Rekommendation:</strong> {problem.recommendation}</p>
+                                                <span className="font-medium text-white">{category.name}</span>
                                             </div>
-                                        ))}
+                                            <span className="text-red-400 font-semibold text-sm">{category.score}/5</span>
+                                        </div>
+                                        {/* Problems */}
+                                        <div className="px-5 py-4 space-y-3">
+                                            {category.problems.map((problem, i) => (
+                                                <div key={i} className="bg-[#161b22] rounded-lg p-4">
+                                                    <p className="text-white/70 text-sm mb-3">
+                                                        <span className="text-white font-medium">Problem:</span> {problem.description}
+                                                    </p>
+                                                    <p className="text-emerald-400 text-sm">
+                                                        <span className="font-medium">Rekommendation:</span> {problem.recommendation}
+                                                    </p>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 ))}
                             </div>
@@ -827,32 +853,34 @@ export default function Home() {
 
                     {/* Improvement Opportunities */}
                     {improvementCategories.length > 0 && (
-                        <div className="mb-8">
-                            <h2 className="text-xl font-medium mb-4 flex items-center gap-2 tracking-tight">
-                                <span className="text-yellow-400">🟡</span> FÖRBÄTTRINGSMÖJLIGHETER
-                            </h2>
-                            <div className="space-y-4">
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                                <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+                                    Förbättringsmöjligheter
+                                </h2>
+                            </div>
+                            <div className="space-y-3">
                                 {improvementCategories.map(category => (
-                                    <details key={category.id} className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl group backdrop-blur-md">
-                                        <summary className="p-6 cursor-pointer flex items-center justify-between">
+                                    <details key={category.id} className="bg-[#0d1117] border border-yellow-500/20 rounded-xl group">
+                                        <summary className="px-5 py-4 cursor-pointer flex items-center justify-between hover:bg-white/[0.02] transition-colors">
                                             <div className="flex items-center gap-3">
-                                                <span className="text-2xl">{category.icon}</span>
-                                                <h3 className="text-lg font-medium">{category.name}</h3>
+                                                <div className="w-9 h-9 bg-yellow-500/10 rounded-lg flex items-center justify-center">
+                                                    <span className="text-base">{category.icon}</span>
+                                                </div>
+                                                <span className="font-medium text-white">{category.name}</span>
                                             </div>
-                                            <span className="text-yellow-400 font-bold">{category.score}/5</span>
+                                            <span className="text-yellow-400 font-semibold text-sm">{category.score}/5</span>
                                         </summary>
-                                        <div className="px-6 pb-6">
+                                        <div className="px-5 pb-4 pt-1 border-t border-white/5 space-y-3">
                                             {category.problems.map((problem, i) => (
-                                                <div key={i} className="bg-black/30 rounded-xl p-4 mb-3">
-                                                    <div className="flex items-center gap-2 mb-2">
-                                                        {problem.severity && getSeverityBadge(problem.severity)}
-                                                        {problem.tag && <span className="text-xs text-white/40 font-mono">{problem.tag}</span>}
-                                                    </div>
-                                                    <p className="text-white/70 mb-2"><strong className="text-white">Problem:</strong> {problem.description}</p>
-                                                    {problem.evidence && (
-                                                        <p className="text-white/50 text-sm mb-2 italic">📍 {problem.evidence}</p>
-                                                    )}
-                                                    <p className="text-emerald-400"><strong>Rekommendation:</strong> {problem.recommendation}</p>
+                                                <div key={i} className="bg-[#161b22] rounded-lg p-4">
+                                                    <p className="text-white/70 text-sm mb-3">
+                                                        <span className="text-white font-medium">Problem:</span> {problem.description}
+                                                    </p>
+                                                    <p className="text-emerald-400 text-sm">
+                                                        <span className="font-medium">Rekommendation:</span> {problem.recommendation}
+                                                    </p>
                                                 </div>
                                             ))}
                                         </div>
@@ -864,64 +892,83 @@ export default function Home() {
 
                     {/* Strengths */}
                     {goodCategories.length > 0 && (
-                        <div className="mb-8">
-                            <h2 className="text-xl font-medium mb-4 flex items-center gap-2 tracking-tight">
-                                <span className="text-emerald-400">🟢</span> STYRKOR
-                            </h2>
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6 backdrop-blur-md">
-                                <ul className="space-y-2">
-                                    {analysisResult.strengths.map((strength, i) => (
-                                        <li key={i} className="flex items-center gap-2">
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                            <span className="text-white/80">{strength}</span>
-                                        </li>
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                                <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+                                    Styrkor
+                                </h2>
+                            </div>
+                            <div className="bg-[#0d1117] border border-emerald-500/20 rounded-xl p-5">
+                                <div className="grid gap-3">
+                                    {goodCategories.map((category) => (
+                                        <div key={category.id} className="flex items-center gap-3 bg-[#161b22] rounded-lg p-3">
+                                            <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                <span className="text-sm">{category.icon}</span>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <span className="text-white/90 text-sm font-medium">{category.name}</span>
+                                            </div>
+                                            <span className="text-emerald-400 text-sm font-semibold">{category.score}/5</span>
+                                        </div>
                                     ))}
-                                </ul>
+                                </div>
                             </div>
                         </div>
                     )}
 
                     {/* Action List */}
-                    <div className="mb-8">
-                        <h2 className="text-xl font-medium mb-4 tracking-tight">📋 PRIORITERAD ÅTGÄRDSLISTA</h2>
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-                            <ul className="space-y-3">
-                                {analysisResult.action_list.map((action, i) => (
-                                    <li key={i} className="flex items-start gap-3">
-                                        <span className="w-6 h-6 flex items-center justify-center rounded border border-white/20 text-sm text-white/60">
-                                            {i + 1}
-                                        </span>
-                                        <div>
-                                            <span className="font-medium text-white/90">{action.action}</span>
-                                            <span className={`ml-2 text-xs px-2 py-0.5 rounded ${action.priority === 'critical' ? 'bg-red-500/20 text-red-400' :
+                    {analysisResult.action_list.length > 0 && (
+                        <div className="mb-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-3 h-3 rounded-full bg-white/40" />
+                                <h2 className="text-sm font-semibold text-white/80 uppercase tracking-wider">
+                                    Prioriterad åtgärdslista
+                                </h2>
+                            </div>
+                            <div className="bg-[#0d1117] border border-white/10 rounded-xl p-5">
+                                <div className="space-y-3">
+                                    {analysisResult.action_list.map((action, i) => (
+                                        <div key={i} className="flex items-start gap-3">
+                                            <div className={`w-6 h-6 rounded-md flex items-center justify-center text-xs font-medium flex-shrink-0 ${
+                                                action.priority === 'critical' ? 'bg-red-500/20 text-red-400' :
                                                 action.priority === 'important' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                    'bg-white/10 text-white/50'
-                                                }`}>
-                                                {action.priority === 'critical' ? 'Kritisk' : action.priority === 'important' ? 'Viktig' : 'Förbättring'}
-                                            </span>
+                                                'bg-white/10 text-white/50'
+                                            }`}>
+                                                {i + 1}
+                                            </div>
+                                            <span className="text-white/80 text-sm leading-relaxed">{action.action}</span>
                                         </div>
-                                    </li>
-                                ))}
-                            </ul>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* CTA */}
-                    <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-8 text-center backdrop-blur-md">
-                        <h2 className="text-xl font-medium mb-4 tracking-tight">📞 Nästa steg</h2>
-                        <p className="text-white/60 mb-6 font-light">
+                    <div className="bg-[#0d1117] border border-emerald-500/20 rounded-xl p-6 md:p-8 text-center">
+                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-4">
+                            <span className="text-2xl">📞</span>
+                        </div>
+                        <h2 className="text-lg font-semibold text-white mb-2">Nästa steg</h2>
+                        <p className="text-white/50 mb-6 text-sm font-light max-w-md mx-auto">
                             Vill du ha hjälp att implementera dessa förbättringar och öka din konvertering?
                         </p>
                         <a
                             href="https://calendly.com/stefan-245/30min"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-8 py-4 bg-white hover:bg-emerald-100 text-black font-medium rounded-xl transition-all transform hover:scale-105 active:scale-95"
+                            className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                         >
                             Boka genomgång för ökad konvertering
                             <ArrowRight className="w-4 h-4" />
                         </a>
                     </div>
+
+                    {/* Footer */}
+                    <p className="text-center text-white/20 text-xs mt-6">
+                        Rapport genererad av Konverteramera • Ett verktyg från Portalfabriken
+                    </p>
                 </div>
             </div>
         );
