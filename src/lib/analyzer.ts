@@ -237,6 +237,68 @@ function formatFullPrompt(data: ScrapedData): string {
   return parts.join('|');
 }
 
+// Generate problem tag based on category and description keywords
+function generateProblemTag(categoryId: string, description: string): string {
+  const desc = description.toLowerCase();
+
+  // Category-specific tag mappings
+  const tagMappings: Record<string, Array<{ keywords: string[]; tag: string }>> = {
+    value_proposition: [
+      { keywords: ['usp', 'unique', 'unik'], tag: 'missing_usp' },
+      { keywords: ['rubrik', 'headline', 'h1'], tag: 'unclear_headline' },
+      { keywords: ['nytta', 'värde', 'benefit', 'fördel'], tag: 'features_not_benefits' },
+    ],
+    call_to_action: [
+      { keywords: ['generisk', 'otydlig', 'vag'], tag: 'generic_cta_text' },
+      { keywords: ['fold', 'synlig', 'placering'], tag: 'cta_below_fold' },
+      { keywords: ['en cta', 'bara en', 'endast en'], tag: 'single_cta_placement' },
+    ],
+    social_proof: [
+      { keywords: ['recension', 'omdöme', 'testimonial', 'citat'], tag: 'no_testimonials' },
+      { keywords: ['socialt bevis', 'social proof', 'saknas'], tag: 'no_social_proof' },
+    ],
+    lead_capture: [
+      { keywords: ['lead magnet', 'magnet', 'gratis', 'nedladdning'], tag: 'no_lead_magnet' },
+      { keywords: ['tröskel', 'barriär', 'låg'], tag: 'no_low_barrier_entry' },
+    ],
+    form_design: [
+      { keywords: ['fält', 'många', 'för mycket'], tag: 'too_many_form_fields' },
+    ],
+    guarantees: [
+      { keywords: ['garanti', 'trygghet', 'löfte'], tag: 'no_guarantee' },
+    ],
+    process_clarity: [
+      { keywords: ['process', 'steg', 'nästa'], tag: 'no_process_explanation' },
+    ],
+    offer_structure: [
+      { keywords: ['pris', 'kostnad', 'transparent'], tag: 'pricing_not_transparent' },
+    ],
+  };
+
+  const categoryMappings = tagMappings[categoryId] || [];
+  for (const mapping of categoryMappings) {
+    if (mapping.keywords.some(kw => desc.includes(kw))) {
+      return mapping.tag;
+    }
+  }
+
+  // Default tag based on category
+  const defaultTags: Record<string, string> = {
+    value_proposition: 'unclear_value_proposition',
+    call_to_action: 'weak_cta',
+    social_proof: 'no_social_proof',
+    lead_capture: 'weak_lead_capture',
+    form_design: 'form_issues',
+    guarantees: 'no_guarantee',
+    urgency_scarcity: 'no_urgency',
+    process_clarity: 'no_process_explanation',
+    content_architecture: 'poor_structure',
+    offer_structure: 'unclear_offer',
+  };
+
+  return defaultTags[categoryId] || `${categoryId}_issue`;
+}
+
 function parseCategories(res: any, scrapedData: ScrapedData): AnalysisCategory[] {
   const categories: AnalysisCategory[] = [];
 
@@ -252,15 +314,17 @@ function parseCategories(res: any, scrapedData: ScrapedData): AnalysisCategory[]
       if (typeof prob === 'string') {
         // Simple string problem (backwards compatibility)
         problems.push({
+          tag: generateProblemTag(cat.id, prob),
           description: prob,
           recommendation: cat.r || ''
         });
       } else if (typeof prob === 'object') {
-        // Full problem object
+        const description = prob.d || prob.description || '';
+        // Full problem object - generate tag if not provided
         problems.push({
-          tag: prob.t || undefined,
+          tag: prob.t || generateProblemTag(cat.id, description),
           severity: prob.sv || undefined,
-          description: prob.d || prob.description || '',
+          description: description,
           recommendation: prob.r || prob.recommendation || '',
           evidence: prob.e || prob.evidence || null
         });
