@@ -1,5 +1,5 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Link } from '@react-pdf/renderer';
 import { AnalysisResult } from '@/types/analysis';
 
 // Register fonts
@@ -352,6 +352,12 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: colors.white,
     },
+    ctaLink: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        color: colors.emerald,
+        textDecoration: 'underline',
+    },
     // Footer
     footer: {
         textAlign: 'center',
@@ -571,11 +577,9 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
                         <Text style={styles.ctaText}>
                             Vill du ha hjälp att implementera dessa förbättringar och öka din konvertering?
                         </Text>
-                        <View style={styles.ctaButton}>
-                            <Text style={styles.ctaButtonText}>
-                                Boka genomgång → calendly.com/stefan-245/30min
-                            </Text>
-                        </View>
+                        <Link src="https://calendly.com/stefan-245/30min" style={styles.ctaLink}>
+                            Boka genomgång för ökad konvertering
+                        </Link>
                     </View>
 
                     {/* Footer */}
