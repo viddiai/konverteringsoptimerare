@@ -179,7 +179,7 @@ async function scrapeDirectFast(url: string): Promise<ScrapedData> {
  */
 async function scrapeWithScrapfly(url: string, apiKey: string): Promise<ScrapedData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 35000); // 35s timeout for heavy WordPress/Divi sites
+    const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout - rendering_wait is only 2s now
 
     try {
         console.log("Scraper: Calling Scrapfly for", url);
@@ -189,10 +189,9 @@ async function scrapeWithScrapfly(url: string, apiKey: string): Promise<ScrapedD
             key: apiKey,
             url: url,
             render_js: 'true',
-            // Wait for common content selectors - more reliable than fixed delay
-            // Includes Elementor/Divi-specific selectors for WordPress sites
-            wait_for_selector: 'h1, h2, .hero, main, article, [class*="content"], [class*="section"], .et_pb_text, .elementor-widget-container',
-            rendering_wait: '5000', // Fallback: 5s wait for heavy WordPress/Divi/Elementor sites
+            // Simplified selectors - fewer = faster matching, exits early when found
+            wait_for_selector: 'h1, main, [class*="content"]',
+            rendering_wait: '2000', // Reduced from 5s - most content loads within 2s
             country: 'se',
             asp: 'true', // Anti-scraping protection bypass
         });

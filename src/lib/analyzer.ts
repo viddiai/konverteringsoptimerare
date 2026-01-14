@@ -384,12 +384,10 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
 
 async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout (Vercel limit)
+  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout - Haiku typically responds in 4-8s
 
   try {
     console.log("Calling Claude Haiku API (full, 10 categories)...");
-    console.log("System prompt length:", system.length);
-    console.log("User prompt length:", user.length);
     const startTime = Date.now();
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -401,7 +399,7 @@ async function callClaude(apiKey: string, system: string, user: string): Promise
       },
       body: JSON.stringify({
         model: 'claude-3-5-haiku-20241022',
-        max_tokens: 4000,
+        max_tokens: 2000, // Reduced from 4000 - actual response is ~1500 tokens
         system: system,
         messages: [
           { role: 'user', content: user }
