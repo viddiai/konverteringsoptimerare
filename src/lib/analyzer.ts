@@ -40,28 +40,60 @@ Svara med:
 
 Endast JSON, inget annat.`;
 
-// Compact prompt - optimized for speed while maintaining quality
-const FULL_PROMPT = `Analysera svenska webbplatsers konvertering. Svara ENDAST med JSON på svenska.
+// Full analysis prompt - requires ALL 10 categories with detailed descriptions
+const FULL_PROMPT = `Du är en konverteringsoptimeringsexpert som analyserar svenska webbplatser. Svara ENDAST med JSON på svenska.
 
-KATEGORIER att analysera (använd EXAKT dessa id-strängar):
-- value_proposition (Värdeerbjudande)
-- call_to_action (CTA)
-- social_proof (Recensioner)
-- lead_capture (Leadfångst)
-- form_design (Formulär)
-- guarantees (Garantier)
-- urgency_scarcity (Brådska, 3=neutral)
-- process_clarity (Process)
-- content_architecture (Struktur)
-- offer_structure (Erbjudande)
+VIKTIGT: Du MÅSTE returnera EXAKT 10 kategorier. Ingen kategori får utelämnas.
 
-Poäng: 1-5, status: critical/improvement/good/neutral
-Max 1-2 problem per kategori, korta beskrivningar på svenska.
+DE 10 KATEGORIER SOM KRÄVS (alla måste inkluderas):
+1. value_proposition - Värdeerbjudande: Hur tydligt kommuniceras värdet? Finns USP?
+2. call_to_action - CTA & Knappar: Är CTA:er tydliga, synliga och övertygande?
+3. social_proof - Social Proof: Finns recensioner, testimonials, kundlogotyper, antal användare?
+4. lead_capture - Leadfångst: Finns formulär, nyhetsbrev, lead magnets?
+5. form_design - Formulärdesign: Är formulär enkla, korta, användarvänliga?
+6. guarantees - Garantier: Finns nöjdhetsgaranti, pengarna-tillbaka, trygghetssymboler?
+7. urgency_scarcity - Brådska & Knapphet: Finns tidsbegränsade erbjudanden, lagerstatus?
+8. process_clarity - Processklarhet: Är nästa steg tydliga? Finns "Så fungerar det"?
+9. content_architecture - Innehållsarkitektur: Är strukturen logisk? Lätt att navigera?
+10. offer_structure - Erbjudande: Är prissättning tydlig? Finns paket/alternativ?
 
-EXAKT FORMAT:
-{"c":[{"id":"value_proposition","s":4,"st":"good","p":[]},{"id":"social_proof","s":2,"st":"critical","p":[{"t":"no_proof","sv":"high","d":"Problem","r":"Lösning"}]}]}
+POÄNGSKALA (1-5):
+- 1 = Kritiskt dåligt, saknas helt
+- 2 = Allvarliga brister
+- 3 = Grundläggande men förbättringspotential
+- 4 = Bra implementation
+- 5 = Utmärkt, best practice
 
-Använd ALLTID strängvärden för id (t.ex. "value_proposition", INTE nummer). JSON only.`;
+STATUS baserat på poäng:
+- 1-2 = "critical"
+- 3 = "improvement"
+- 4-5 = "good"
+- För urgency_scarcity: 3 = "neutral" (inte alltid nödvändigt)
+
+FÖR VARJE KATEGORI, inkludera:
+- d (description): Detaljerad beskrivning av problemet (minst 20 ord)
+- r (recommendation): Konkret åtgärdsförslag (minst 15 ord)
+
+EXAKT JSON-FORMAT (alla 10 kategorier krävs):
+{"c":[
+  {"id":"value_proposition","s":3,"st":"improvement","p":[{"d":"Detaljerad problembeskrivning här...","r":"Konkret rekommendation här..."}]},
+  {"id":"call_to_action","s":4,"st":"good","p":[]},
+  {"id":"social_proof","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
+  {"id":"lead_capture","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
+  {"id":"form_design","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]},
+  {"id":"guarantees","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
+  {"id":"urgency_scarcity","s":3,"st":"neutral","p":[]},
+  {"id":"process_clarity","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]},
+  {"id":"content_architecture","s":4,"st":"good","p":[]},
+  {"id":"offer_structure","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]}
+]}
+
+REGLER:
+- Returnera EXAKT 10 kategorier, inga fler, inga färre
+- Använd EXAKT dessa id-strängar (inga nummer, inga variationer)
+- Varje kategori med poäng 1-3 MÅSTE ha minst ett problem med d och r
+- Skriv på svenska
+- Endast JSON, ingen annan text`;
 
 export interface QuickAnalysisResult {
   score: number;
@@ -366,7 +398,7 @@ async function callClaude(apiKey: string, system: string, user: string): Promise
       },
       body: JSON.stringify({
         model: 'claude-3-5-haiku-20241022',
-        max_tokens: 2000,
+        max_tokens: 4000,
         system: system,
         messages: [
           { role: 'user', content: user }
