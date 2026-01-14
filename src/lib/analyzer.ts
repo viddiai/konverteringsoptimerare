@@ -40,20 +40,37 @@ Svara med:
 
 Endast JSON, inget annat.`;
 
-// Full analysis prompt - concise version for faster response
-const FULL_PROMPT = `Analysera webbplats för konvertering. Svara ENDAST med JSON på svenska.
+// Full analysis prompt - balanced for speed and quality
+const FULL_PROMPT = `Du är konverteringsexpert. Analysera webbplatsen och returnera ENDAST JSON på svenska.
 
-10 KATEGORIER (alla krävs):
-value_proposition, call_to_action, social_proof, lead_capture, form_design, guarantees, urgency_scarcity, process_clarity, content_architecture, offer_structure
+ANALYSERA DESSA 10 KATEGORIER:
+1. value_proposition - Värdeerbjudande (USP, nytta)
+2. call_to_action - CTA-knappar (tydlighet, placering)
+3. social_proof - Socialt bevis (recensioner, logotyper)
+4. lead_capture - Leadfångst (formulär, magneter)
+5. form_design - Formulärdesign (enkelhet, fält)
+6. guarantees - Garantier (trygghet, löften)
+7. urgency_scarcity - Brådska (tidsbegränsat, knapphet)
+8. process_clarity - Processklarhet (nästa steg)
+9. content_architecture - Struktur (navigation, hierarki)
+10. offer_structure - Erbjudande (pris, paket)
 
-POÄNG: 1-2=critical, 3=improvement, 4-5=good (urgency: 3=neutral)
+POÄNGSÄTTNING:
+- 1-2 poäng = "critical" (saknas/dåligt)
+- 3 poäng = "improvement" (ok men kan förbättras)
+- 4-5 poäng = "good" (fungerar bra)
 
-FORMAT:
-{"c":[{"id":"kategori_id","s":POÄNG,"st":"STATUS","p":[{"d":"problem","r":"lösning"}],"g":"styrka om 4-5"}]}
+JSON-FORMAT:
+{"c":[
+{"id":"value_proposition","s":3,"st":"improvement","p":[{"d":"Värdeerbjudandet är otydligt formulerat","r":"Skriv om huvudrubriken för att tydligt visa kundens nytta"}]},
+{"id":"call_to_action","s":4,"st":"good","p":[],"g":"Tydliga CTA-knappar med bra kontrast och handlingsorienterad text"}
+]}
 
-- p: array med problem (d=beskrivning, r=rekommendation) - obligatoriskt för poäng 1-3
-- g: förklaring varför bra - obligatoriskt för poäng 4-5
-- Skriv på svenska, kort och konkret`;
+REGLER:
+- Returnera alla 10 kategorier
+- p = array med problem (d=beskrivning, r=rekommendation) för poäng 1-3
+- g = styrka-förklaring för poäng 4-5
+- Skriv konkreta, specifika observationer på svenska`;
 
 export interface QuickAnalysisResult {
   score: number;
