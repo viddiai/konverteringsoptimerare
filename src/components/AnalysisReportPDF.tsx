@@ -24,12 +24,15 @@ const colors = {
     emerald: '#10b981',
     emeraldLight: '#34d399',
     emeraldDark: '#059669',
+    emeraldBorder: 'rgba(16, 185, 129, 0.3)',
     red: '#ef4444',
     redLight: '#fca5a5',
     redBg: 'rgba(239, 68, 68, 0.1)',
+    redBorder: 'rgba(239, 68, 68, 0.3)',
     yellow: '#eab308',
     yellowLight: '#fde047',
     yellowBg: 'rgba(234, 179, 8, 0.1)',
+    yellowBorder: 'rgba(234, 179, 8, 0.3)',
     border: '#30363d',
 };
 
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         marginBottom: 8,
         borderWidth: 1,
-        borderColor: 'rgba(16, 185, 129, 0.2)',
+        borderColor: colors.emeraldBorder,
         overflow: 'hidden',
     },
     strengthHeader: {
@@ -398,9 +401,6 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
                 <View style={styles.header}>
                     <View style={styles.headerRow}>
                         <View style={styles.headerLeft}>
-                            <View style={styles.iconBox}>
-                                <Text style={styles.iconText}>📊</Text>
-                            </View>
                             <View>
                                 <Text style={styles.headerTitle}>Konverteringsanalys</Text>
                                 <Text style={styles.headerUrl}>{analysis.url}</Text>
@@ -436,14 +436,9 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
                                 <Text style={styles.sectionTitle}>Kritiska problem</Text>
                             </View>
                             {criticalCategories.map(category => (
-                                <View key={category.id} style={[styles.categoryCard, { borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                                <View key={category.id} style={[styles.categoryCard, { borderColor: colors.redBorder }]}>
                                     <View style={styles.categoryHeader}>
-                                        <View style={styles.categoryLeft}>
-                                            <View style={[styles.categoryIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
-                                                <Text style={styles.categoryIcon}>{category.icon}</Text>
-                                            </View>
-                                            <Text style={styles.categoryName}>{category.name}</Text>
-                                        </View>
+                                        <Text style={styles.categoryName}>{category.name}</Text>
                                         <Text style={[styles.categoryScore, { color: colors.red }]}>
                                             {category.score}/5
                                         </Text>
@@ -471,14 +466,9 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
                                 <Text style={styles.sectionTitle}>Förbättringsmöjligheter</Text>
                             </View>
                             {improvementCategories.map(category => (
-                                <View key={category.id} style={[styles.categoryCard, { borderColor: 'rgba(234, 179, 8, 0.2)' }]}>
+                                <View key={category.id} style={[styles.categoryCard, { borderColor: colors.yellowBorder }]}>
                                     <View style={styles.categoryHeader}>
-                                        <View style={styles.categoryLeft}>
-                                            <View style={[styles.categoryIconBox, { backgroundColor: 'rgba(234, 179, 8, 0.1)' }]}>
-                                                <Text style={styles.categoryIcon}>{category.icon}</Text>
-                                            </View>
-                                            <Text style={styles.categoryName}>{category.name}</Text>
-                                        </View>
+                                        <Text style={styles.categoryName}>{category.name}</Text>
                                         <Text style={[styles.categoryScore, { color: colors.yellow }]}>
                                             {category.score}/5
                                         </Text>
@@ -510,12 +500,7 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
                             {goodCategories.map((category) => (
                                 <View key={category.id} style={styles.strengthCard}>
                                     <View style={styles.strengthHeader}>
-                                        <View style={styles.strengthLeft}>
-                                            <View style={styles.strengthIconBox}>
-                                                <Text style={{ fontSize: 11 }}>{category.icon}</Text>
-                                            </View>
-                                            <Text style={styles.strengthName}>{category.name}</Text>
-                                        </View>
+                                        <Text style={styles.strengthName}>{category.name}</Text>
                                         <Text style={styles.strengthScore}>{category.score}/5</Text>
                                     </View>
                                     {category.strength_reason && (
@@ -570,9 +555,6 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
 
                     {/* CTA */}
                     <View style={styles.ctaSection}>
-                        <View style={styles.ctaIconBox}>
-                            <Text style={styles.ctaIcon}>📞</Text>
-                        </View>
                         <Text style={styles.ctaTitle}>Nästa steg</Text>
                         <Text style={styles.ctaText}>
                             Vill du ha hjälp att implementera dessa förbättringar och öka din konvertering?

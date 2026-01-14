@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getAnalysisStats, seedDemoData, getAllAnalyses } from '@/lib/store';
+import { getAnalysisStats } from '@/lib/store';
 
 export async function GET() {
-    // Seed demo data if empty (for testing)
-    if (getAllAnalyses().length === 0) {
-        seedDemoData();
+    try {
+        const stats = await getAnalysisStats();
+        return NextResponse.json(stats);
+    } catch (error) {
+        console.error('Failed to fetch stats:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch stats' },
+            { status: 500 }
+        );
     }
-
-    const stats = getAnalysisStats();
-    return NextResponse.json(stats);
 }

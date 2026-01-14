@@ -222,9 +222,23 @@ export default function Home() {
         }
     };
 
-    const handleRegister = (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (firstName.trim() && email.trim()) {
+        if (firstName.trim() && email.trim() && analysisResult) {
+            // Save registration to database
+            try {
+                await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        analysis: analysisResult,
+                        email: email.trim(),
+                        firstName: firstName.trim()
+                    })
+                });
+            } catch (error) {
+                console.error('Failed to save registration:', error);
+            }
             setAppState('report');
         }
     };

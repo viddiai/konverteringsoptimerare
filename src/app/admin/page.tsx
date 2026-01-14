@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { BarChart3, Users, TrendingUp, AlertTriangle, Loader2, ArrowLeft } from 'lucide-react';
+import { BarChart3, Users, TrendingUp, AlertTriangle, Loader2, ArrowLeft, LogOut, Search } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 interface ProblemStat {
     tag: string;
@@ -58,6 +59,8 @@ export default function AdminDashboard() {
     const [stats, setStats] = useState<AdminStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const router = useRouter();
 
     useEffect(() => {
         async function fetchStats() {
@@ -75,6 +78,12 @@ export default function AdminDashboard() {
         fetchStats();
     }, []);
 
+    const handleLogout = async () => {
+        await fetch('/api/admin/logout', { method: 'POST' });
+        router.push('/admin/login');
+        router.refresh();
+    };
+
     const getScoreColor = (score: number) => {
         if (score < 2) return 'text-red-400';
         if (score < 3) return 'text-orange-400';
@@ -82,6 +91,16 @@ export default function AdminDashboard() {
         if (score < 4.5) return 'text-green-400';
         return 'text-emerald-400';
     };
+
+    const filteredAnalyses = stats?.recentAnalyses.filter(analysis => {
+        if (!searchQuery.trim()) return true;
+        const query = searchQuery.toLowerCase();
+        return (
+            analysis.url.toLowerCase().includes(query) ||
+            analysis.email.toLowerCase().includes(query) ||
+            analysis.firstName.toLowerCase().includes(query)
+        );
+    }) || [];
 
     if (loading) {
         return (
@@ -111,8 +130,15 @@ export default function AdminDashboard() {
                             Tillbaka till analyzer
                         </Link>
                         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-                        <p className="text-slate-400">Översikt över alla analyser</p>
+                        <p className="text-slate-400">Översikt över alla registreringar</p>
                     </div>
+                    <button
+                        onClick={handleLogout}
+                        className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg transition-colors"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        Logga ut
+                    </button>
                 </div>
 
                 {/* Stats Cards */}
@@ -122,7 +148,7 @@ export default function AdminDashboard() {
                             <div className="w-10 h-10 bg-[var(--accent-primary)]/10 rounded-full flex items-center justify-center">
                                 <BarChart3 className="w-5 h-5 text-[var(--accent-primary)]" />
                             </div>
-                            <span className="text-neutral-400 text-sm">Totalt analyser</span>
+                            <span className="text-neutral-400 text-sm">Totalt registreringar</span>
                         </div>
                         <div className="text-3xl font-bold">{stats.totalAnalyses}</div>
                     </div>
@@ -166,7 +192,7 @@ export default function AdminDashboard() {
                     {/* Most Common Problems */}
                     <div className="bg-[var(--surface)] rounded-2xl p-6 border border-white/5">
                         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            ⚠️ Vanligaste problemen
+                            Vanligaste problemen
                         </h2>
                         <div className="space-y-4">
                             {stats.topProblems.map((problem, i) => (
@@ -194,7 +220,7 @@ export default function AdminDashboard() {
                     {/* Leaking Funnels */}
                     <div className="bg-[var(--surface)] rounded-2xl p-6 border border-white/5">
                         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            🚰 Läckande trattar
+                            Läckande trattar
                         </h2>
                         <div className="space-y-4">
                             {stats.topLeakingFunnels.map((leak) => (
@@ -219,7 +245,7 @@ export default function AdminDashboard() {
                         </div>
 
                         {/* Category Breakdown */}
-                        <h3 className="text-lg font-bold mt-8 mb-4">📊 Betygsfördelning</h3>
+                        <h3 className="text-lg font-bold mt-8 mb-4">Betygsfördelning</h3>
                         <div className="grid grid-cols-5 gap-2">
                             {['Kritiskt', 'Undermåligt', 'Godkänt', 'Bra', 'Utmärkt'].map(cat => (
                                 <div key={cat} className="text-center">
@@ -238,9 +264,21 @@ export default function AdminDashboard() {
                     </div>
                 </div>
 
-                {/* Recent Analyses */}
+                {/* Registrations Table */}
                 <div className="mt-8 bg-[var(--surface)] rounded-2xl p-6 border border-white/5">
-                    <h2 className="text-xl font-bold mb-6">📋 Senaste analyserna</h2>
+                    <div className="flex items-center justify-between mb-6">
+                        <h2 className="text-xl font-bold">Alla registreringar</h2>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
+                            <input
+                                type="text"
+                                placeholder="Sök på URL, namn eller e-post..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="pl-10 pr-4 py-2 bg-[#0d1117] border border-white/10 rounded-lg text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500/50 w-80"
+                            />
+                        </div>
+                    </div>
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
@@ -249,17 +287,32 @@ export default function AdminDashboard() {
                                     <th className="pb-4">Namn</th>
                                     <th className="pb-4">E-post</th>
                                     <th className="pb-4">Betyg</th>
+                                    <th className="pb-4">Kategori</th>
                                     <th className="pb-4">Datum</th>
                                 </tr>
                             </thead>
                             <tbody className="text-sm">
-                                {stats.recentAnalyses.map((analysis) => (
-                                    <tr key={analysis.id} className="border-t border-white/5">
-                                        <td className="py-3 text-[var(--accent-primary)]">{analysis.url}</td>
+                                {filteredAnalyses.map((analysis) => (
+                                    <tr key={analysis.id} className="border-t border-white/5 hover:bg-white/5 transition-colors">
+                                        <td className="py-3 text-[var(--accent-primary)] max-w-[200px] truncate">
+                                            <a href={analysis.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                                                {analysis.url.replace(/^https?:\/\//, '')}
+                                            </a>
+                                        </td>
                                         <td className="py-3">{analysis.firstName}</td>
                                         <td className="py-3 text-neutral-400">{analysis.email}</td>
                                         <td className={`py-3 font-bold ${getScoreColor(analysis.overallScore)}`}>
                                             {analysis.overallScore.toFixed(1)}
+                                        </td>
+                                        <td className="py-3">
+                                            <span className={`px-2 py-1 rounded text-xs font-medium ${analysis.overallCategory === 'Kritiskt' ? 'bg-red-500/20 text-red-400' :
+                                                analysis.overallCategory === 'Undermåligt' ? 'bg-orange-500/20 text-orange-400' :
+                                                    analysis.overallCategory === 'Godkänt' ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        analysis.overallCategory === 'Bra' ? 'bg-green-500/20 text-green-400' :
+                                                            'bg-emerald-500/20 text-emerald-400'
+                                                }`}>
+                                                {analysis.overallCategory}
+                                            </span>
                                         </td>
                                         <td className="py-3 text-neutral-500">
                                             {new Date(analysis.analyzedAt).toLocaleDateString('sv-SE')}
@@ -268,8 +321,10 @@ export default function AdminDashboard() {
                                 ))}
                             </tbody>
                         </table>
-                        {stats.recentAnalyses.length === 0 && (
-                            <p className="text-neutral-500 text-center py-8">Inga analyser ännu</p>
+                        {filteredAnalyses.length === 0 && (
+                            <p className="text-neutral-500 text-center py-8">
+                                {searchQuery ? 'Inga resultat för din sökning' : 'Inga registreringar ännu'}
+                            </p>
                         )}
                     </div>
                 </div>
