@@ -2,7 +2,7 @@ import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import { AnalysisResult } from '@/types/analysis';
 
-// Register a standard font
+// Register fonts
 Font.register({
     family: 'Helvetica',
     fonts: [
@@ -11,239 +11,352 @@ Font.register({
     ],
 });
 
+// Portalfabriken Dark Theme Colors
+const colors = {
+    background: '#0d1117',
+    cardBg: '#161b22',
+    white: '#ffffff',
+    white90: '#e5e5e5',
+    white70: '#b3b3b3',
+    white50: '#808080',
+    white30: '#4d4d4d',
+    white10: '#1a1a1a',
+    emerald: '#10b981',
+    emeraldLight: '#34d399',
+    emeraldDark: '#059669',
+    red: '#ef4444',
+    redLight: '#fca5a5',
+    redBg: 'rgba(239, 68, 68, 0.1)',
+    yellow: '#eab308',
+    yellowLight: '#fde047',
+    yellowBg: 'rgba(234, 179, 8, 0.1)',
+    border: '#30363d',
+};
+
 const styles = StyleSheet.create({
     page: {
-        padding: 40,
+        padding: 0,
         fontSize: 10,
         fontFamily: 'Helvetica',
-        backgroundColor: '#ffffff',
+        backgroundColor: colors.background,
     },
+    content: {
+        padding: 40,
+        paddingTop: 30,
+    },
+    // Header
     header: {
-        marginBottom: 20,
+        backgroundColor: colors.cardBg,
+        padding: 30,
+        paddingBottom: 25,
         borderBottomWidth: 1,
-        borderBottomColor: '#00D9A3',
-        paddingBottom: 15,
-        backgroundColor: '#000000',
-        marginHorizontal: -40,
-        marginTop: -40,
-        paddingHorizontal: 40,
-        paddingTop: 40,
+        borderBottomColor: colors.border,
     },
-    logo: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#FFFFFF',
-        marginBottom: 5,
+    headerRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
     },
-    subtitle: {
-        fontSize: 10,
-        color: '#00D9A3',
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
     },
-    title: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        color: '#1a1a1a',
-        marginBottom: 5,
-    },
-    url: {
-        fontSize: 12,
-        color: '#00D9A3',
-        marginBottom: 5,
-    },
-    date: {
-        fontSize: 9,
-        color: '#888888',
-    },
-    scoreSection: {
-        textAlign: 'center',
-        marginVertical: 25,
-        padding: 20,
-        backgroundColor: '#f8f9fa',
+    iconBox: {
+        width: 36,
+        height: 36,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
         borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    iconText: {
+        fontSize: 16,
+    },
+    headerTitle: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: colors.white,
+        marginBottom: 2,
+    },
+    headerUrl: {
+        fontSize: 9,
+        color: colors.white50,
+    },
+    // Score Section
+    scoreSection: {
+        backgroundColor: colors.cardBg,
+        marginHorizontal: 40,
+        marginTop: 20,
+        padding: 30,
+        borderRadius: 12,
         borderWidth: 1,
-        borderColor: '#e5e5e5',
+        borderColor: colors.border,
+        alignItems: 'center',
     },
     scoreNumber: {
-        fontSize: 48,
+        fontSize: 56,
         fontWeight: 'bold',
+    },
+    scoreMax: {
+        fontSize: 20,
+        color: colors.white30,
     },
     scoreCategory: {
         fontSize: 16,
-        color: '#333333',
-        marginTop: 5,
+        color: colors.white70,
+        marginTop: 8,
+        marginBottom: 15,
+    },
+    progressBarBg: {
+        width: '60%',
+        height: 8,
+        backgroundColor: colors.cardBg,
+        borderRadius: 4,
+        marginBottom: 20,
+        overflow: 'hidden',
+    },
+    progressBar: {
+        height: 8,
+        backgroundColor: colors.emerald,
+        borderRadius: 4,
     },
     summary: {
-        fontSize: 11,
-        color: '#444444',
+        fontSize: 10,
+        color: colors.white50,
+        textAlign: 'center',
+        lineHeight: 1.6,
+        maxWidth: '90%',
+    },
+    dateText: {
+        fontSize: 8,
+        color: colors.white30,
         marginTop: 15,
-        lineHeight: 1.5,
+    },
+    // Section Headers
+    sectionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 12,
+        marginTop: 25,
+    },
+    sectionDot: {
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        marginRight: 10,
     },
     sectionTitle: {
-        fontSize: 14,
+        fontSize: 10,
         fontWeight: 'bold',
-        color: '#333333',
-        marginTop: 20,
-        marginBottom: 10,
-        paddingBottom: 5,
-        borderBottomWidth: 1,
-        borderBottomColor: '#00D9A3',
+        color: colors.white70,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
-    criticalSection: {
-        backgroundColor: '#FFF1F2', // Light Coral
-        padding: 12,
+    // Category Cards
+    categoryCard: {
+        backgroundColor: colors.cardBg,
+        borderRadius: 10,
         marginBottom: 10,
-        borderRadius: 6,
-        borderLeftWidth: 3,
-        borderLeftColor: '#FF6B6B',
-    },
-    improvementSection: {
-        backgroundColor: '#FAFAF9',
-        padding: 12,
-        marginBottom: 10,
-        borderRadius: 6,
-        borderLeftWidth: 3,
-        borderLeftColor: '#F59E0B',
-    },
-    strengthSection: {
-        backgroundColor: '#F0FDF4',
-        padding: 12,
-        marginBottom: 10,
-        borderRadius: 6,
-        borderLeftWidth: 3,
-        borderLeftColor: '#00D9A3',
+        borderWidth: 1,
+        overflow: 'hidden',
     },
     categoryHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
+        alignItems: 'center',
+        padding: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: colors.border,
+    },
+    categoryLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    categoryIconBox: {
+        width: 28,
+        height: 28,
+        borderRadius: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    categoryIcon: {
+        fontSize: 12,
     },
     categoryName: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
-        color: '#1a1a1a',
+        color: colors.white,
     },
     categoryScore: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: 'bold',
     },
+    // Problem Boxes
+    problemsContainer: {
+        padding: 14,
+    },
     problemBox: {
-        backgroundColor: '#ffffff',
-        padding: 10,
-        marginTop: 8,
-        borderRadius: 4,
+        backgroundColor: colors.background,
+        borderRadius: 6,
+        padding: 12,
+        marginBottom: 8,
     },
     problemLabel: {
         fontSize: 9,
         fontWeight: 'bold',
-        color: '#666666',
-        marginBottom: 3,
+        color: colors.white,
+        marginBottom: 4,
     },
     problemText: {
-        fontSize: 10,
-        color: '#333333',
-        marginBottom: 8,
-        lineHeight: 1.4,
+        fontSize: 9,
+        color: colors.white70,
+        lineHeight: 1.5,
+        marginBottom: 10,
     },
     recommendationLabel: {
         fontSize: 9,
         fontWeight: 'bold',
-        color: '#00D9A3',
-        marginBottom: 3,
+        color: colors.emerald,
+        marginBottom: 4,
     },
     recommendationText: {
-        fontSize: 10,
-        color: '#00D9A3',
-        lineHeight: 1.4,
+        fontSize: 9,
+        color: colors.emerald,
+        lineHeight: 1.5,
     },
-    actionItem: {
-        flexDirection: 'row',
-        marginBottom: 6,
-        alignItems: 'flex-start',
-    },
-    actionNumber: {
-        width: 20,
-        fontSize: 10,
-        color: '#666666',
-    },
-    actionText: {
-        flex: 1,
-        fontSize: 10,
-        color: '#333333',
-    },
-    actionPriority: {
-        fontSize: 8,
-        paddingHorizontal: 6,
-        paddingVertical: 2,
-        borderRadius: 4,
-        marginLeft: 8,
-    },
-    criticalPriority: {
-        backgroundColor: '#FFF1F2',
-        color: '#FF6B6B',
-    },
-    importantPriority: {
-        backgroundColor: '#FEF3C7',
-        color: '#D97706',
-    },
-    improvementPriority: {
-        backgroundColor: '#F3F4F6',
-        color: '#6B7280',
+    // Strengths Section
+    strengthsCard: {
+        backgroundColor: colors.cardBg,
+        borderRadius: 10,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: 'rgba(16, 185, 129, 0.2)',
     },
     strengthItem: {
         flexDirection: 'row',
-        marginBottom: 4,
+        alignItems: 'center',
+        backgroundColor: colors.background,
+        borderRadius: 6,
+        padding: 10,
+        marginBottom: 6,
+    },
+    strengthIconBox: {
+        width: 24,
+        height: 24,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderRadius: 6,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    strengthName: {
+        flex: 1,
+        fontSize: 9,
+        color: colors.white90,
+    },
+    strengthScore: {
+        fontSize: 9,
+        fontWeight: 'bold',
+        color: colors.emerald,
+    },
+    // Action List
+    actionCard: {
+        backgroundColor: colors.cardBg,
+        borderRadius: 10,
+        padding: 16,
+        borderWidth: 1,
+        borderColor: colors.border,
+    },
+    actionItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+    actionNumber: {
+        width: 20,
+        height: 20,
+        borderRadius: 4,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    actionNumberText: {
+        fontSize: 9,
+        fontWeight: 'bold',
+    },
+    actionText: {
+        flex: 1,
+        fontSize: 9,
+        color: colors.white70,
+        lineHeight: 1.5,
+    },
+    // CTA Section
+    ctaSection: {
+        backgroundColor: colors.cardBg,
+        borderRadius: 10,
+        padding: 25,
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(16, 185, 129, 0.2)',
         alignItems: 'center',
     },
-    checkmark: {
-        color: '#00D9A3',
-        marginRight: 8,
-        fontSize: 12,
+    ctaIconBox: {
+        width: 40,
+        height: 40,
+        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
     },
-    ctaSection: {
-        marginTop: 30,
-        padding: 20,
-        backgroundColor: '#F0FDF4',
-        borderRadius: 8,
-        textAlign: 'center',
-        borderWidth: 1,
-        borderColor: '#00D9A3',
+    ctaIcon: {
+        fontSize: 18,
     },
     ctaTitle: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#1a1a1a',
+        color: colors.white,
         marginBottom: 8,
     },
     ctaText: {
-        fontSize: 11,
-        color: '#444444',
-        marginBottom: 12,
-    },
-    ctaLink: {
-        fontSize: 12,
-        color: '#00D9A3',
-        fontWeight: 'bold',
-    },
-    footer: {
-        position: 'absolute',
-        bottom: 30,
-        left: 40,
-        right: 40,
+        fontSize: 10,
+        color: colors.white50,
         textAlign: 'center',
-        fontSize: 8,
-        color: '#888888',
+        marginBottom: 15,
+    },
+    ctaButton: {
+        backgroundColor: colors.emerald,
+        paddingHorizontal: 20,
+        paddingVertical: 10,
+        borderRadius: 8,
+    },
+    ctaButtonText: {
+        fontSize: 11,
+        fontWeight: 'bold',
+        color: colors.white,
+    },
+    // Footer
+    footer: {
+        textAlign: 'center',
+        marginTop: 25,
+        paddingTop: 15,
         borderTopWidth: 1,
-        borderTopColor: '#e5e5e5',
-        paddingTop: 10,
+        borderTopColor: colors.border,
+    },
+    footerText: {
+        fontSize: 8,
+        color: colors.white30,
     },
 });
 
 const getScoreColor = (score: number) => {
-    if (score < 2) return '#DC2626';
-    if (score < 3) return '#EA580C';
-    if (score < 3.5) return '#CA8A04';
-    if (score < 4.5) return '#16A34A';
-    return '#059669';
+    if (score < 2) return colors.red;
+    if (score < 3) return '#ea580c';
+    if (score < 3.5) return colors.yellow;
+    if (score < 4.5) return colors.emerald;
+    return colors.emeraldDark;
 };
 
 interface AnalysisReportPDFProps {
@@ -255,131 +368,200 @@ export const AnalysisReportPDF: React.FC<AnalysisReportPDFProps> = ({ analysis }
     const improvementCategories = analysis.categories.filter(c =>
         c.status === 'improvement' || c.status === 'neutral' || c.status === 'not_identified'
     );
+    const goodCategories = analysis.categories.filter(c => c.status === 'good');
 
     return (
         <Document>
             <Page size="A4" style={styles.page}>
                 {/* Header */}
                 <View style={styles.header}>
-                    <Text style={styles.logo}>Portalfabriken</Text>
-                    <Text style={styles.subtitle}>Lead Generation Conversion Analyzer</Text>
+                    <View style={styles.headerRow}>
+                        <View style={styles.headerLeft}>
+                            <View style={styles.iconBox}>
+                                <Text style={styles.iconText}>📊</Text>
+                            </View>
+                            <View>
+                                <Text style={styles.headerTitle}>Konverteringsanalys</Text>
+                                <Text style={styles.headerUrl}>{analysis.url}</Text>
+                            </View>
+                        </View>
+                    </View>
                 </View>
-
-                {/* Title */}
-                <Text style={styles.title}>KONVERTERINGSANALYS</Text>
-                <Text style={styles.url}>{analysis.url}</Text>
-                <Text style={styles.date}>
-                    Genererad: {new Date(analysis.analyzed_at).toLocaleDateString('sv-SE')}
-                </Text>
 
                 {/* Score Section */}
                 <View style={styles.scoreSection}>
-                    <Text style={[styles.scoreNumber, { color: getScoreColor(analysis.overall_score) }]}>
-                        {analysis.overall_score_rounded} / 5
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+                        <Text style={[styles.scoreNumber, { color: getScoreColor(analysis.overall_score) }]}>
+                            {analysis.overall_score_rounded}
+                        </Text>
+                        <Text style={styles.scoreMax}> / 5</Text>
+                    </View>
                     <Text style={styles.scoreCategory}>{analysis.overall_category}</Text>
+                    <View style={styles.progressBarBg}>
+                        <View style={[styles.progressBar, { width: `${(analysis.overall_score / 5) * 100}%` }]} />
+                    </View>
                     <Text style={styles.summary}>{analysis.overall_summary}</Text>
+                    <Text style={styles.dateText}>
+                        Genererad: {new Date(analysis.analyzed_at).toLocaleDateString('sv-SE')}
+                    </Text>
                 </View>
 
-                {/* Critical Issues */}
-                {criticalCategories.length > 0 && (
-                    <>
-                        <Text style={styles.sectionTitle}>🔴 KRITISKA PROBLEM</Text>
-                        {criticalCategories.map(category => (
-                            <View key={category.id} style={styles.criticalSection}>
-                                <View style={styles.categoryHeader}>
-                                    <Text style={styles.categoryName}>{category.icon} {category.name}</Text>
-                                    <Text style={[styles.categoryScore, { color: getScoreColor(category.score) }]}>
-                                        {category.score}/5
-                                    </Text>
-                                </View>
-                                {category.problems.map((problem, i) => (
-                                    <View key={i} style={styles.problemBox}>
-                                        <Text style={styles.problemLabel}>Problem:</Text>
-                                        <Text style={styles.problemText}>{problem.description}</Text>
-                                        <Text style={styles.recommendationLabel}>Rekommendation:</Text>
-                                        <Text style={styles.recommendationText}>{problem.recommendation}</Text>
-                                    </View>
-                                ))}
+                <View style={styles.content}>
+                    {/* Critical Issues */}
+                    {criticalCategories.length > 0 && (
+                        <>
+                            <View style={styles.sectionHeader}>
+                                <View style={[styles.sectionDot, { backgroundColor: colors.red }]} />
+                                <Text style={styles.sectionTitle}>Kritiska problem</Text>
                             </View>
-                        ))}
-                    </>
-                )}
-
-                {/* Improvement Opportunities */}
-                {improvementCategories.length > 0 && (
-                    <>
-                        <Text style={styles.sectionTitle}>🟡 FÖRBÄTTRINGSMÖJLIGHETER</Text>
-                        {improvementCategories.map(category => (
-                            <View key={category.id} style={styles.improvementSection}>
-                                <View style={styles.categoryHeader}>
-                                    <Text style={styles.categoryName}>{category.icon} {category.name}</Text>
-                                    <Text style={[styles.categoryScore, { color: getScoreColor(category.score) }]}>
-                                        {category.score}/5
-                                    </Text>
-                                </View>
-                                {category.problems.slice(0, 1).map((problem, i) => (
-                                    <View key={i} style={styles.problemBox}>
-                                        <Text style={styles.problemLabel}>Problem:</Text>
-                                        <Text style={styles.problemText}>{problem.description}</Text>
-                                        <Text style={styles.recommendationLabel}>Rekommendation:</Text>
-                                        <Text style={styles.recommendationText}>{problem.recommendation}</Text>
+                            {criticalCategories.map(category => (
+                                <View key={category.id} style={[styles.categoryCard, { borderColor: 'rgba(239, 68, 68, 0.2)' }]}>
+                                    <View style={styles.categoryHeader}>
+                                        <View style={styles.categoryLeft}>
+                                            <View style={[styles.categoryIconBox, { backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}>
+                                                <Text style={styles.categoryIcon}>{category.icon}</Text>
+                                            </View>
+                                            <Text style={styles.categoryName}>{category.name}</Text>
+                                        </View>
+                                        <Text style={[styles.categoryScore, { color: colors.red }]}>
+                                            {category.score}/5
+                                        </Text>
                                     </View>
-                                ))}
-                            </View>
-                        ))}
-                    </>
-                )}
-
-                {/* Strengths */}
-                {analysis.strengths.length > 0 && (
-                    <>
-                        <Text style={styles.sectionTitle}>🟢 STYRKOR</Text>
-                        <View style={styles.strengthSection}>
-                            {analysis.strengths.map((strength, i) => (
-                                <View key={i} style={styles.strengthItem}>
-                                    <Text style={styles.checkmark}>✓</Text>
-                                    <Text style={{ fontSize: 10, color: '#1a1a1a' }}>{strength}</Text>
+                                    <View style={styles.problemsContainer}>
+                                        {category.problems.map((problem, i) => (
+                                            <View key={i} style={styles.problemBox}>
+                                                <Text style={styles.problemLabel}>Problem:</Text>
+                                                <Text style={styles.problemText}>{problem.description}</Text>
+                                                <Text style={styles.recommendationLabel}>Rekommendation:</Text>
+                                                <Text style={styles.recommendationText}>{problem.recommendation}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
                                 </View>
                             ))}
-                        </View>
-                    </>
-                )}
+                        </>
+                    )}
 
-                {/* Action List */}
-                <Text style={styles.sectionTitle}>📋 PRIORITERAD ÅTGÄRDSLISTA</Text>
-                {analysis.action_list.slice(0, 6).map((action, i) => (
-                    <View key={i} style={styles.actionItem}>
-                        <Text style={styles.actionNumber}>{i + 1}.</Text>
-                        <Text style={styles.actionText}>{action.action}</Text>
-                        <Text style={[
-                            styles.actionPriority,
-                            action.priority === 'critical' ? styles.criticalPriority :
-                                action.priority === 'important' ? styles.importantPriority :
-                                    styles.improvementPriority
-                        ]}>
-                            {action.priority === 'critical' ? 'Kritisk' :
-                                action.priority === 'important' ? 'Viktig' : 'Förbättring'}
+                    {/* Improvement Opportunities */}
+                    {improvementCategories.length > 0 && (
+                        <>
+                            <View style={styles.sectionHeader}>
+                                <View style={[styles.sectionDot, { backgroundColor: colors.yellow }]} />
+                                <Text style={styles.sectionTitle}>Förbättringsmöjligheter</Text>
+                            </View>
+                            {improvementCategories.map(category => (
+                                <View key={category.id} style={[styles.categoryCard, { borderColor: 'rgba(234, 179, 8, 0.2)' }]}>
+                                    <View style={styles.categoryHeader}>
+                                        <View style={styles.categoryLeft}>
+                                            <View style={[styles.categoryIconBox, { backgroundColor: 'rgba(234, 179, 8, 0.1)' }]}>
+                                                <Text style={styles.categoryIcon}>{category.icon}</Text>
+                                            </View>
+                                            <Text style={styles.categoryName}>{category.name}</Text>
+                                        </View>
+                                        <Text style={[styles.categoryScore, { color: colors.yellow }]}>
+                                            {category.score}/5
+                                        </Text>
+                                    </View>
+                                    {category.problems.length > 0 && (
+                                        <View style={styles.problemsContainer}>
+                                            {category.problems.slice(0, 1).map((problem, i) => (
+                                                <View key={i} style={styles.problemBox}>
+                                                    <Text style={styles.problemLabel}>Problem:</Text>
+                                                    <Text style={styles.problemText}>{problem.description}</Text>
+                                                    <Text style={styles.recommendationLabel}>Rekommendation:</Text>
+                                                    <Text style={styles.recommendationText}>{problem.recommendation}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    )}
+                                </View>
+                            ))}
+                        </>
+                    )}
+
+                    {/* Strengths */}
+                    {goodCategories.length > 0 && (
+                        <>
+                            <View style={styles.sectionHeader}>
+                                <View style={[styles.sectionDot, { backgroundColor: colors.emerald }]} />
+                                <Text style={styles.sectionTitle}>Styrkor</Text>
+                            </View>
+                            <View style={styles.strengthsCard}>
+                                {goodCategories.map((category) => (
+                                    <View key={category.id} style={styles.strengthItem}>
+                                        <View style={styles.strengthIconBox}>
+                                            <Text style={{ fontSize: 10 }}>{category.icon}</Text>
+                                        </View>
+                                        <Text style={styles.strengthName}>{category.name}</Text>
+                                        <Text style={styles.strengthScore}>{category.score}/5</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </>
+                    )}
+
+                    {/* Action List */}
+                    {analysis.action_list.length > 0 && (
+                        <>
+                            <View style={styles.sectionHeader}>
+                                <View style={[styles.sectionDot, { backgroundColor: colors.white50 }]} />
+                                <Text style={styles.sectionTitle}>Prioriterad åtgärdslista</Text>
+                            </View>
+                            <View style={styles.actionCard}>
+                                {analysis.action_list.slice(0, 6).map((action, i) => (
+                                    <View key={i} style={styles.actionItem}>
+                                        <View style={[
+                                            styles.actionNumber,
+                                            {
+                                                backgroundColor: action.priority === 'critical'
+                                                    ? 'rgba(239, 68, 68, 0.2)'
+                                                    : action.priority === 'important'
+                                                        ? 'rgba(234, 179, 8, 0.2)'
+                                                        : 'rgba(255, 255, 255, 0.1)'
+                                            }
+                                        ]}>
+                                            <Text style={[
+                                                styles.actionNumberText,
+                                                {
+                                                    color: action.priority === 'critical'
+                                                        ? colors.red
+                                                        : action.priority === 'important'
+                                                            ? colors.yellow
+                                                            : colors.white50
+                                                }
+                                            ]}>
+                                                {i + 1}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.actionText}>{action.action}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                        </>
+                    )}
+
+                    {/* CTA */}
+                    <View style={styles.ctaSection}>
+                        <View style={styles.ctaIconBox}>
+                            <Text style={styles.ctaIcon}>📞</Text>
+                        </View>
+                        <Text style={styles.ctaTitle}>Nästa steg</Text>
+                        <Text style={styles.ctaText}>
+                            Vill du ha hjälp att implementera dessa förbättringar och öka din konvertering?
+                        </Text>
+                        <View style={styles.ctaButton}>
+                            <Text style={styles.ctaButtonText}>
+                                Boka genomgång → calendly.com/stefan-245/30min
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Footer */}
+                    <View style={styles.footer}>
+                        <Text style={styles.footerText}>
+                            Rapport genererad av Konverteramera • Ett verktyg från Portalfabriken
                         </Text>
                     </View>
-                ))}
-
-                {/* CTA */}
-                <View style={styles.ctaSection}>
-                    <Text style={styles.ctaTitle}>📞 Nästa steg</Text>
-                    <Text style={styles.ctaText}>
-                        Vill du ha hjälp att implementera dessa förbättringar och öka din konvertering?
-                    </Text>
-                    <Text style={styles.ctaLink}>
-                        Boka genomgång → calendly.com/stefan-245/30min
-                    </Text>
-                </View>
-
-                {/* Footer */}
-                <View style={styles.footer}>
-                    <Text>
-                        Denna rapport skapades av Lead Generation Conversion Analyzer – portalfabriken.se/analysera
-                    </Text>
                 </View>
             </Page>
         </Document>
