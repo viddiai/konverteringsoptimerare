@@ -982,7 +982,7 @@ export default function Home() {
                     {/* CTA */}
                     <div className="bg-[#0d1117] border border-emerald-500/20 rounded-xl p-6 md:p-8 text-center">
                         <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mx-auto mb-4">
-                            <span className="text-2xl">📞</span>
+                            <span className="text-2xl">🚀</span>
                         </div>
                         <h2 className="text-lg font-semibold text-white mb-2">Nästa steg</h2>
                         <p className="text-white/50 mb-6 text-sm font-light max-w-md mx-auto">
