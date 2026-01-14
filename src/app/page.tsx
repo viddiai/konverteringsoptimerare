@@ -259,196 +259,180 @@ export default function Home() {
         }
     };
 
-    // View 1: Home Page (URL Input) - Portalfabriken.se style
+    // View 1: Home Page (URL Input) - Clean Portalfabriken style
     if (appState === 'input') {
         return (
             <div className="min-h-screen bg-black text-white relative overflow-hidden">
-                {/* Background Components - like portalfabriken.se */}
+                {/* Background */}
                 <div className="fixed inset-0 -z-10 h-full w-full bg-black">
                     <div className="absolute inset-0 bg-grid-pattern" />
                     <div className="absolute inset-0 bg-glow" />
                 </div>
 
-                {/* Fixed Header */}
-                <header className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-black/50 backdrop-blur-xl">
-                    <div className="max-w-7xl mx-auto px-6">
-                        <nav className="flex h-16 items-center justify-between">
-                            <a href="/" className="flex items-center gap-3 group">
-                                <div className="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center text-white font-bold">
-                                    K
-                                </div>
-                                <span className="font-medium text-sm tracking-tight text-white/90 group-hover:text-white transition-colors">
-                                    Konverteramera
-                                </span>
-                            </a>
-
-                            <div className="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 rounded-full p-1 pl-2 backdrop-blur-md">
-                                <a href="#guide" className="px-4 py-1.5 text-xs font-normal text-white bg-[#0a1628] rounded-full hover:bg-[#152238] transition-colors">
-                                    Guide för ökad konvertering
-                                </a>
-                                <a
-                                    href="https://calendly.com/stefan-245/30min"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="ml-1 relative inline-flex items-center justify-center rounded-full bg-white px-4 py-1.5 text-xs font-medium text-black transition-transform hover:scale-105 active:scale-95"
-                                >
-                                    Boka konsultation
-                                </a>
-                            </div>
-                        </nav>
-                    </div>
-                </header>
-
                 {/* Hero Section */}
-                <section className="pt-32 md:pt-48 pb-20 md:pb-32 px-6 relative">
-                    <div className="max-w-5xl mx-auto text-center relative z-10">
+                <section className="pt-16 md:pt-24 pb-16 px-6 relative">
+                    <div className="max-w-3xl mx-auto text-center relative z-10">
                         <div
                             ref={heroRef.ref}
                             className={`transition-all duration-700 ${heroRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
                         >
-                            <div className="inline-flex gap-2 text-xs text-emerald-400 bg-white/5 border-white/10 border rounded-full mb-8 py-1 px-3 items-center">
-                                Gratis Verktyg
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                </span>
-                            </div>
-
-                            <h1 className="text-4xl md:text-6xl lg:text-7xl font-medium text-white tracking-tighter mb-8">
-                                Testa din webbsidas<br />
-                                <span className="text-white/40">konverteringsförmåga</span>
+                            <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white tracking-tight mb-6">
+                                Analysera din webbsidas<br />
+                                konverteringsförmåga
                             </h1>
 
                             <p className="text-base md:text-lg leading-relaxed font-light text-white/60 max-w-2xl mx-auto mb-10">
-                                Få en obarmhärtig analys av vad som hindrar din webbplats från att konvertera besökare till leads.
-                                Inget fluff – bara konkreta problem och lösningar.
+                                Få en obarmhärtig analys av vad som hindrar din webbsida från att konvertera besökare till leads. Ingen fluff – bara konkreta problem och lösningar.
                             </p>
                         </div>
 
-                        {/* Analysis Input */}
+                        {/* Analysis Input - Inline style */}
                         <div
-                            className={`max-w-xl mx-auto transition-all duration-700 delay-150 ${heroRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                            className={`max-w-2xl mx-auto transition-all duration-700 delay-150 ${heroRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
                         >
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-md">
-                                <div className="flex flex-col sm:flex-row gap-4">
-                                    <div className="relative flex-1">
-                                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            value={url}
-                                            onChange={(e) => setUrl(e.target.value)}
-                                            onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
-                                            placeholder="Ange URL, t.ex. www.example.se"
-                                            className="w-full pl-12 pr-4 py-4 bg-black/50 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
-                                        />
-                                    </div>
-                                    <button
-                                        onClick={handleAnalyze}
-                                        className="group relative inline-flex h-14 items-center justify-center overflow-hidden rounded-xl bg-white px-8 font-medium text-black transition-all hover:bg-emerald-100 hover:scale-105 active:scale-95"
-                                    >
-                                        <span className="mr-2">Analysera</span>
-                                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                                    </button>
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 w-5 h-5" />
+                                    <input
+                                        type="text"
+                                        value={url}
+                                        onChange={(e) => setUrl(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleAnalyze()}
+                                        placeholder="Ange URL att analysera, t.ex. www.example.se"
+                                        className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50 transition-all"
+                                    />
                                 </div>
-
-                                {error && (
-                                    <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400">
-                                        <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                        <span>{error}</span>
-                                    </div>
-                                )}
+                                <button
+                                    onClick={handleAnalyze}
+                                    className="h-14 px-8 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl transition-all hover:scale-105 active:scale-95"
+                                >
+                                    Analysera
+                                </button>
                             </div>
-                        </div>
 
-                        {/* Abstract Glow */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-emerald-500/10 blur-[100px] rounded-full -z-10 pointer-events-none" />
+                            {error && (
+                                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-400">
+                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                                    <span>{error}</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </section>
 
-                {/* Features Section */}
-                <section className="py-16 px-6 border-t border-white/5 bg-white/[0.01]">
+                {/* "Vad vi analyserar" Section */}
+                <section className="py-20 px-6">
                     <div
                         ref={featuresRef.ref}
-                        className={`max-w-5xl mx-auto transition-all duration-700 ${featuresRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
+                        className={`max-w-4xl mx-auto transition-all duration-700 ${featuresRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
                     >
+                        <h2 className="text-2xl md:text-3xl font-semibold text-white text-center mb-12">
+                            Vad vi analyserar
+                        </h2>
+
                         <div className="grid md:grid-cols-3 gap-6">
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
-                                <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center mb-4">
-                                    <span className="text-2xl">🎯</span>
+                            {/* Leadmagneter & Formulär */}
+                            <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-8 text-center hover:border-emerald-500/30 transition-colors">
+                                <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <circle cx="12" cy="12" r="3" />
+                                        <circle cx="12" cy="12" r="8" strokeDasharray="4 2" />
+                                        <path d="M12 2v2M12 20v2M2 12h2M20 12h2" />
+                                    </svg>
                                 </div>
-                                <h3 className="font-medium text-lg mb-2 text-white">6 Kritiska Områden</h3>
-                                <p className="text-white/50 text-sm font-light">Vi analyserar allt från värdeerbjudande till formulärdesign</p>
+                                <h3 className="font-semibold text-lg mb-3 text-white">Leadmagneter & Formulär</h3>
+                                <p className="text-white/50 text-sm font-light leading-relaxed">
+                                    Vi hittar läckande trattar – mailto-länkar och öppna PDF:er som ger bort värde utan att fånga leads.
+                                </p>
                             </div>
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
-                                <div className="w-12 h-12 bg-red-500/10 rounded-xl flex items-center justify-center mb-4">
-                                    <span className="text-2xl">⚡</span>
+
+                            {/* Konverteringselement */}
+                            <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-8 text-center hover:border-emerald-500/30 transition-colors">
+                                <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
                                 </div>
-                                <h3 className="font-medium text-lg mb-2 text-white">Läckande Trattar</h3>
-                                <p className="text-white/50 text-sm font-light">Identifierar var du förlorar potentiella kunder</p>
+                                <h3 className="font-semibold text-lg mb-3 text-white">Konverteringselement</h3>
+                                <p className="text-white/50 text-sm font-light leading-relaxed">
+                                    CTA-knappar, värdeerbjudande, social proof – allt som påverkar om besökare konverterar eller studsar.
+                                </p>
                             </div>
-                            <div className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-emerald-500/30 transition-colors">
-                                <div className="w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center mb-4">
-                                    <span className="text-2xl">📋</span>
+
+                            {/* Konkreta Rekommendationer */}
+                            <div className="bg-[#0d1117] border border-white/10 rounded-2xl p-8 text-center hover:border-emerald-500/30 transition-colors">
+                                <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                                    <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                        <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                    </svg>
                                 </div>
-                                <h3 className="font-medium text-lg mb-2 text-white">Konkreta Åtgärder</h3>
-                                <p className="text-white/50 text-sm font-light">Prioriterad lista med förbättringar du kan göra idag</p>
+                                <h3 className="font-semibold text-lg mb-3 text-white">Konkreta Rekommendationer</h3>
+                                <p className="text-white/50 text-sm font-light leading-relaxed">
+                                    Inga fluffiga tips. Fem konkreta åtgärder prioriterade efter påverkan på din konvertering.
+                                </p>
                             </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Guide Section */}
-                <section id="guide" className="py-24 px-6 border-t border-white/5">
+                <section id="guide" className="py-16 px-6">
                     <div
                         ref={guideRef.ref}
                         className={`max-w-5xl mx-auto transition-all duration-700 ${guideRef.isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-5'}`}
                     >
-                        <div className="text-center mb-12">
-                            <p className="text-emerald-400 font-medium text-xs tracking-widest uppercase mb-2">Gratis Guide</p>
-                            <h2 className="text-3xl md:text-4xl font-medium text-white tracking-tight">
-                                Lär dig konverteringsoptimering
-                            </h2>
-                        </div>
-
-                        <div className="bg-white/5 border border-white/10 rounded-2xl p-8 md:p-12">
-                            <div className="flex flex-col md:flex-row gap-8 items-center">
-                                {/* Book Cover */}
-                                <div className="w-full md:w-1/3 flex-shrink-0">
-                                    <img
-                                        src="/omslag.png"
-                                        alt="7 beprövade sätt att öka konverteringen och vinna fler affärer"
-                                        className="w-full rounded-xl shadow-2xl border border-white/10"
-                                    />
+                        <div className="bg-[#0d1117] border border-white/10 rounded-2xl overflow-hidden">
+                            <div className="flex flex-col md:flex-row">
+                                {/* Book Cover - Left Side */}
+                                <div className="w-full md:w-2/5 p-8 md:p-12 bg-[#161b22] flex flex-col items-center justify-center">
+                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-2xl flex items-center justify-center mb-6">
+                                        <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                                            <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-xl font-semibold text-white text-center mb-2">
+                                        7 beprövade sätt att öka konverteringen och vinna fler affärer
+                                    </h3>
+                                    <p className="text-white/50 text-sm text-center">
+                                        En strategisk guide för VD:ar och säljchefer på medelstora svenska företag
+                                    </p>
                                 </div>
 
-                                {/* Guide Content */}
-                                <div className="flex-1">
-                                    <h3 className="text-2xl md:text-3xl font-medium text-white mb-4 tracking-tight">
-                                        7 beprövade sätt att öka konverteringen
-                                    </h3>
-                                    <p className="text-white/60 mb-6 font-light">
-                                        Konkreta verktyg för att formulera värdeerbjudanden, fånga leads och eliminera friktion som dödar affärer.
+                                {/* Content - Right Side */}
+                                <div className="flex-1 p-8 md:p-12">
+                                    <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                                        7 beprövade sätt att öka konverteringen och vinna fler affärer
+                                    </h2>
+
+                                    <p className="text-white/70 mb-6 font-medium">
+                                        Denna guide ger dig
                                     </p>
-                                    <ul className="space-y-2 text-white/70 mb-6 text-sm">
-                                        <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                            <span>Formulera ett värdeerbjudande som faktiskt övertygar</span>
+
+                                    <p className="text-white/50 mb-4 text-sm">
+                                        Konkreta verktyg för att:
+                                    </p>
+
+                                    <ul className="space-y-3 text-white/70 mb-8">
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-1">•</span>
+                                            <span>Formulera ett värdeerbjudande som faktiskt övertygar svenska beslutsfattare</span>
                                         </li>
-                                        <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-1">•</span>
                                             <span>Fånga upp potentiella kunder innan de är redo att köpa</span>
                                         </li>
-                                        <li className="flex items-start gap-2">
-                                            <CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
-                                            <span>Bygga systematiskt förtroende genom sociala bevis</span>
+                                        <li className="flex items-start gap-3">
+                                            <span className="text-emerald-400 mt-1">•</span>
+                                            <span>Eliminera friktion som dödar affärer</span>
                                         </li>
                                     </ul>
+
                                     <form
                                         name="guide-download"
                                         method="POST"
                                         data-netlify="true"
                                         action="/tack"
-                                        className="flex flex-col sm:flex-row gap-4"
+                                        className="flex flex-col sm:flex-row gap-3"
                                     >
                                         <input type="hidden" name="form-name" value="guide-download" />
                                         <input
@@ -456,19 +440,16 @@ export default function Home() {
                                             name="email"
                                             placeholder="Din e-postadress"
                                             required
-                                            className="flex-1 px-4 py-3 bg-black/50 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
+                                            className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500/50"
                                         />
                                         <input type="hidden" name="guide" value="7 beprövade sätt att öka konverteringen" />
                                         <button
                                             type="submit"
-                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
+                                            className="px-6 py-3 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl transition-colors whitespace-nowrap"
                                         >
                                             Hämta guiden
                                         </button>
                                     </form>
-                                    <p className="mt-4 text-xs text-white/30">
-                                        Vi behandlar dina uppgifter enligt vår integritetspolicy.
-                                    </p>
                                 </div>
                             </div>
                         </div>
