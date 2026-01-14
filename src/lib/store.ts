@@ -14,9 +14,11 @@ export interface StoredAnalysis {
 
 const ANALYSIS_IDS_KEY = 'analysis:ids';
 
-// Check if KV is configured
+// Check if KV is configured (supports both Vercel KV and Upstash naming)
 function isKVConfigured(): boolean {
-    return !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+    const hasVercelKV = !!(process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN);
+    const hasUpstash = !!(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+    return hasVercelKV || hasUpstash;
 }
 
 // Dynamic import to avoid errors when KV is not configured
