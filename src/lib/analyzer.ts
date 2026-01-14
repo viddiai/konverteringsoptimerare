@@ -40,62 +40,20 @@ Svara med:
 
 Endast JSON, inget annat.`;
 
-// Full analysis prompt - requires ALL 10 categories with detailed descriptions
-const FULL_PROMPT = `Du är en konverteringsoptimeringsexpert som analyserar svenska webbplatser. Svara ENDAST med JSON på svenska.
+// Full analysis prompt - concise version for faster response
+const FULL_PROMPT = `Analysera webbplats för konvertering. Svara ENDAST med JSON på svenska.
 
-VIKTIGT: Du MÅSTE returnera EXAKT 10 kategorier. Ingen kategori får utelämnas.
+10 KATEGORIER (alla krävs):
+value_proposition, call_to_action, social_proof, lead_capture, form_design, guarantees, urgency_scarcity, process_clarity, content_architecture, offer_structure
 
-DE 10 KATEGORIER SOM KRÄVS (alla måste inkluderas):
-1. value_proposition - Värdeerbjudande: Hur tydligt kommuniceras värdet? Finns USP?
-2. call_to_action - CTA & Knappar: Är CTA:er tydliga, synliga och övertygande?
-3. social_proof - Social Proof: Finns recensioner, testimonials, kundlogotyper, antal användare?
-4. lead_capture - Leadfångst: Finns formulär, nyhetsbrev, lead magnets?
-5. form_design - Formulärdesign: Är formulär enkla, korta, användarvänliga?
-6. guarantees - Garantier: Finns nöjdhetsgaranti, pengarna-tillbaka, trygghetssymboler?
-7. urgency_scarcity - Brådska & Knapphet: Finns tidsbegränsade erbjudanden, lagerstatus?
-8. process_clarity - Processklarhet: Är nästa steg tydliga? Finns "Så fungerar det"?
-9. content_architecture - Innehållsarkitektur: Är strukturen logisk? Lätt att navigera?
-10. offer_structure - Erbjudande: Är prissättning tydlig? Finns paket/alternativ?
+POÄNG: 1-2=critical, 3=improvement, 4-5=good (urgency: 3=neutral)
 
-POÄNGSKALA (1-5):
-- 1 = Kritiskt dåligt, saknas helt
-- 2 = Allvarliga brister
-- 3 = Grundläggande men förbättringspotential
-- 4 = Bra implementation
-- 5 = Utmärkt, best practice
+FORMAT:
+{"c":[{"id":"kategori_id","s":POÄNG,"st":"STATUS","p":[{"d":"problem","r":"lösning"}],"g":"styrka om 4-5"}]}
 
-STATUS baserat på poäng:
-- 1-2 = "critical"
-- 3 = "improvement"
-- 4-5 = "good"
-- För urgency_scarcity: 3 = "neutral" (inte alltid nödvändigt)
-
-FÖR VARJE KATEGORI, inkludera:
-- d (description): Detaljerad beskrivning av problemet (minst 20 ord)
-- r (recommendation): Konkret åtgärdsförslag (minst 15 ord)
-- g (good_reason): För kategorier med poäng 4-5, förklara VARFÖR det är bra (minst 15 ord)
-
-EXAKT JSON-FORMAT (alla 10 kategorier krävs):
-{"c":[
-  {"id":"value_proposition","s":3,"st":"improvement","p":[{"d":"Detaljerad problembeskrivning här...","r":"Konkret rekommendation här..."}]},
-  {"id":"call_to_action","s":4,"st":"good","g":"Webbplatsen har tydliga CTA-knappar med handlingsorienterat språk som sticker ut visuellt...","p":[]},
-  {"id":"social_proof","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
-  {"id":"lead_capture","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
-  {"id":"form_design","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]},
-  {"id":"guarantees","s":2,"st":"critical","p":[{"d":"...","r":"..."}]},
-  {"id":"urgency_scarcity","s":3,"st":"neutral","p":[]},
-  {"id":"process_clarity","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]},
-  {"id":"content_architecture","s":4,"st":"good","g":"Innehållet är logiskt strukturerat med tydlig hierarki...","p":[]},
-  {"id":"offer_structure","s":3,"st":"improvement","p":[{"d":"...","r":"..."}]}
-]}
-
-REGLER:
-- Returnera EXAKT 10 kategorier, inga fler, inga färre
-- Använd EXAKT dessa id-strängar (inga nummer, inga variationer)
-- Varje kategori med poäng 1-3 MÅSTE ha minst ett problem med d och r
-- Varje kategori med poäng 4-5 MÅSTE ha g (good_reason) som förklarar varför det är bra
-- Skriv på svenska
-- Endast JSON, ingen annan text`;
+- p: array med problem (d=beskrivning, r=rekommendation) - obligatoriskt för poäng 1-3
+- g: förklaring varför bra - obligatoriskt för poäng 4-5
+- Skriv på svenska, kort och konkret`;
 
 export interface QuickAnalysisResult {
   score: number;

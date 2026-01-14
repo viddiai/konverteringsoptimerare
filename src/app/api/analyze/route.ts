@@ -23,37 +23,43 @@ export async function POST(request: NextRequest) {
                 };
 
                 try {
-                    // ========== START BOTH SCRAPES IN PARALLEL ==========
+                    // ========== START ALL OPERATIONS IN PARALLEL ==========
                     send({ type: 'progress', data: { step: 'quick_scraping', message: 'Snabbhämtar webbsida...' } });
 
-                    // Start full scrape immediately (don't wait for quick analysis)
+                    // Start BOTH scrapes immediately
                     const fullScrapePromise = scrapeWebsite(url);
+                    const quickScrapePromise = scrapeQuick(url);
 
-                    // Quick scrape runs in parallel
-                    const quickData = await scrapeQuick(url);
+                    // Wait for quick scrape first (for teaser)
+                    const quickData = await quickScrapePromise;
 
                     // ========== PHASE 1: Quick Analysis ==========
+                    // Start full analysis in background while quick analysis runs
+                    const fullAnalysisPromise = (async () => {
+                        const fullData = await fullScrapePromise;
+                        const results: any[] = [];
+                        const analyzer = analyzeWebsiteStream(fullData);
+                        for await (const chunk of analyzer) {
+                            results.push(chunk);
+                        }
+                        return results;
+                    })();
+
                     if (quickData.visibleText && quickData.visibleText.length > 50) {
                         send({ type: 'progress', data: { step: 'quick_analyzing', message: 'Snabbanalyserar...' } });
                         const quickResult = await analyzeQuick(quickData);
                         send({ type: 'quick_result', data: quickResult });
                     } else {
-                        // JS-heavy site or scrape failed - send placeholder quick result
-                        // so UI can show teaser state while full analysis runs
+                        // JS-heavy site - send placeholder for teaser
                         send({ type: 'progress', data: { step: 'quick_analyzing', message: 'JS-tung webbplats, kör fullständig analys...' } });
                         send({ type: 'quick_result', data: { score: 3, problems: [{ category: 'Analys', problem: 'Webbplatsen kräver JavaScript-rendering', status: 'neutral' }] } });
                     }
 
-                    // ========== PHASE 2: Full Analysis (scrape already running) ==========
-                    send({ type: 'progress', data: { step: 'full_scraping', message: 'Hämtar fullständig data...' } });
-
-                    // Wait for full scrape (likely already done or almost done)
-                    const fullData = await fullScrapePromise;
-
+                    // ========== PHASE 2: Wait for Full Analysis (already running!) ==========
                     send({ type: 'progress', data: { step: 'full_analyzing', message: 'Djupanalyserar...' } });
 
-                    const analyzer = analyzeWebsiteStream(fullData);
-                    for await (const chunk of analyzer) {
+                    const fullResults = await fullAnalysisPromise;
+                    for (const chunk of fullResults) {
                         send({ type: 'full_' + chunk.type, data: chunk.data });
                     }
 
