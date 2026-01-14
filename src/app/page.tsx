@@ -109,11 +109,18 @@ export default function Home() {
             setCurrentTipIndex((prev) => (prev + 1) % LOADING_TIPS.length);
         }, 4000);
 
+        // Client-side timeout to prevent infinite loading
+        const controller = new AbortController();
+        const clientTimeout = setTimeout(() => {
+            controller.abort();
+        }, 45000); // 45 second max
+
         try {
             const response = await fetch('/api/analyze', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url }),
+                signal: controller.signal,
             });
 
             if (!response.ok) {
@@ -202,9 +209,15 @@ export default function Home() {
             }
 
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Något gick fel');
+            clearTimeout(clientTimeout);
+            if (err instanceof Error && err.name === 'AbortError') {
+                setError('Analysen tog för lång tid. Försök igen eller prova en annan URL.');
+            } else {
+                setError(err instanceof Error ? err.message : 'Något gick fel');
+            }
             setAppState('input');
         } finally {
+            clearTimeout(clientTimeout);
             clearInterval(tipInterval);
         }
     };

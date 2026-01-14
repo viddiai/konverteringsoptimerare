@@ -179,7 +179,7 @@ async function scrapeDirectFast(url: string): Promise<ScrapedData> {
  */
 async function scrapeWithScrapfly(url: string, apiKey: string): Promise<ScrapedData> {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 6000); // 6s timeout (reduced from 10s)
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout for JS-heavy sites
 
     try {
         console.log("Scraper: Calling Scrapfly for", url);
