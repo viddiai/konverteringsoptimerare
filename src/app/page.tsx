@@ -107,7 +107,7 @@ export default function Home() {
 
         const tipInterval = setInterval(() => {
             setCurrentTipIndex((prev) => (prev + 1) % LOADING_TIPS.length);
-        }, 4000);
+        }, 5000); // 5s between tips
 
         // Client-side timeout to prevent infinite loading (matches Vercel Pro maxDuration)
         const controller = new AbortController();
@@ -687,6 +687,15 @@ export default function Home() {
                         <p className="text-center text-white/30 text-xs mt-4">
                             Gratis • Ingen spam • Levereras direkt
                         </p>
+
+                        {/* Tips while loading full report */}
+                        {isLoadingFull && (
+                            <div className="mt-6 bg-white/5 border border-white/10 rounded-xl p-4">
+                                <p className="text-white/60 text-sm font-light italic text-center">
+                                    {LOADING_TIPS[currentTipIndex]}
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
