@@ -134,10 +134,10 @@ Text: ${data.visibleText.substring(0, 500)}`;
  */
 async function callClaudeQuick(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout for quick
+  const timeout = setTimeout(() => controller.abort(), 12000); // 12s timeout for quick (Sonnet is slower than Haiku)
 
   try {
-    console.log("Calling Claude Haiku API (quick)...");
+    console.log("Calling Claude Sonnet 4.6 API (quick)...");
     const startTime = Date.now();
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -148,7 +148,7 @@ async function callClaudeQuick(apiKey: string, system: string, user: string): Pr
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'claude-sonnet-4-6-latest',
         max_tokens: 500,
         system: system,
         messages: [
@@ -159,7 +159,7 @@ async function callClaudeQuick(apiKey: string, system: string, user: string): Pr
     });
 
     clearTimeout(timeout);
-    console.log(`Claude Haiku quick response in ${Date.now() - startTime}ms`);
+    console.log(`Claude Sonnet 4.6 quick response in ${Date.now() - startTime}ms`);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -423,10 +423,10 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
 
 async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout - Haiku typically responds in 4-8s
+  const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout - Sonnet needs more time than Haiku
 
   try {
-    console.log("Calling Claude Haiku API (full, 10 categories)...");
+    console.log("Calling Claude Sonnet 4.6 API (full, 10 categories)...");
     const startTime = Date.now();
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -437,8 +437,8 @@ async function callClaude(apiKey: string, system: string, user: string): Promise
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 2000, // Reduced from 4000 - actual response is ~1500 tokens
+        model: 'claude-sonnet-4-6-latest',
+        max_tokens: 2000,
         system: system,
         messages: [
           { role: 'user', content: user }
@@ -448,7 +448,7 @@ async function callClaude(apiKey: string, system: string, user: string): Promise
     });
 
     clearTimeout(timeout);
-    console.log(`Claude Haiku response in ${Date.now() - startTime}ms, status: ${response.status}`);
+    console.log(`Claude Sonnet 4.6 response in ${Date.now() - startTime}ms, status: ${response.status}`);
 
     if (!response.ok) {
       const errorText = await response.text();
