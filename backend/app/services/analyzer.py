@@ -132,6 +132,18 @@ class ConversionAnalyzer:
                 "evidence": None
             })
 
+        # Flaggera generisk "vi erbjuder X" om H1 saknar konkret värdeerbjudande
+        generic_h1_patterns = ["affärsjuridik", "juridik", "advokat", "konsulter", "experter"]
+        if h1 and h1_length < 60 and not has_subheadline:
+            # Kort H1 utan underrubrik = inget fördjupat värdeerbjudande
+            problems.append({
+                "tag": "features_not_benefits",
+                "severity": "medium",
+                "description": "Rubriken beskriver vad ni gör men saknar fördjupande underrubrik med mätbara fördelar eller differentiering.",
+                "recommendation": "Lägg till en underrubrik som kommunicerar konkret kundnytta, t.ex. 'Sänk juridiska risker med 60% – på halva tiden'.",
+                "evidence": f"H1: '{h1}' (ingen underrubrik)"
+            })
+
         # Beräkna poäng baserat på promptens poängguide
         if not h1 or (h1 and any(phrase in h1.lower() for phrase in vague_phrases)):
             score = 1  # Rubriken förklarar inte vad företaget gör
@@ -144,8 +156,9 @@ class ConversionAnalyzer:
         else:
             score = 3  # Default: förståeligt men kan förbättras
 
-        # Justera uppåt om inga problem hittades
-        if not problems:
+        # Justera uppåt endast om inga problem alls OCH både hero + subheadline finns
+        # (Struktur != bevisade fördelar — 5 kräver tydligt hero + subheadline)
+        if not problems and has_hero and has_subheadline and h1_length <= 80:
             score = 5
 
         return {
@@ -163,6 +176,8 @@ class ConversionAnalyzer:
         - generic_cta_text – Generisk knapptext ("Skicka")
         - low_contrast_cta – CTA smälter in visuellt (kräver CSS-analys)
         - single_cta_placement – Endast en CTA-placering
+        - duplicate_ctas – Flera identiska CTA:er (brist på fokus)
+        - too_many_ctas – För många olika CTA:er (valparalys)
 
         Poängguide:
         1 = Ingen tydlig CTA hittades
@@ -171,8 +186,25 @@ class ConversionAnalyzer:
         4 = Bra CTA, synlig placering, kan förstärkas
         5 = Optimala CTA:er med starkt språk, multipla placeringar
         """
-        ctas = self.data.get("cta_buttons", [])
+        raw_ctas = self.data.get("cta_buttons", [])
         problems = []
+
+        # Filtrera bort GDPR/cookie-knappar och submit-knappar som inte är äkta CTA:er
+        gdpr_markers = ["moove-gdpr", "gdpr", "cookie", "change-settings"]
+        gdpr_texts = {"acceptera alla", "avvisa alla", "ställ in cookies",
+                      "aktivera alla", "spara ändringar", "inställningar",
+                      "accept all", "reject all", "cookie settings"}
+
+        def is_gdpr_cta(cta: dict) -> bool:
+            classes = " ".join(cta.get("classes", []) or []).lower()
+            text = (cta.get("text") or "").lower().strip()
+            if any(marker in classes for marker in gdpr_markers):
+                return True
+            if text in gdpr_texts:
+                return True
+            return False
+
+        ctas = [c for c in raw_ctas if not is_gdpr_cta(c)]
 
         if not ctas:
             problems.append({
@@ -194,12 +226,38 @@ class ConversionAnalyzer:
                 "evidence": f"Hittade 1 CTA: '{ctas[0].get('text', '')}'"
             })
 
+        # Kontrollera dubletter (samma text flera gånger indikerar brist på fokus)
+        cta_texts_lower = [(c.get("text") or "").lower().strip() for c in ctas]
+        duplicate_count = len(cta_texts_lower) - len(set(cta_texts_lower))
+        if duplicate_count > 0:
+            # Hitta vilka som är dublerade
+            from collections import Counter
+            counts = Counter(cta_texts_lower)
+            duplicates = [t for t, n in counts.items() if n > 1 and t]
+            problems.append({
+                "tag": "duplicate_ctas",
+                "severity": "medium",
+                "description": f"Flera identiska CTA:er hittades ({duplicate_count} dubletter). Detta tyder på brist på strategisk placering och spridd fokus.",
+                "recommendation": "Konsolidera identiska CTA:er och använd en tydlig primär-CTA per sektion. Varje CTA ska driva mot ett specifikt nästa steg.",
+                "evidence": f"Dubletter: {', '.join(duplicates[:3])}"
+            })
+
+        # Kontrollera för många CTA:er (valparalys)
+        if len(ctas) > 6:
+            problems.append({
+                "tag": "too_many_ctas",
+                "severity": "medium",
+                "description": f"För många olika CTA-val ({len(ctas)} st) skapar valparalys. Besökaren vet inte vad som är viktigast att göra.",
+                "recommendation": "Identifiera EN primär konverteringshandling och gör den visuellt dominant. Andra CTA:er ska vara sekundära i stil och placering.",
+                "evidence": f"{len(ctas)} unika CTA:er hittades"
+            })
+
         # Kontrollera svaga/generiska CTA-texter
         weak_texts = ["läs mer", "read more", "mer info", "more info", "klicka här",
                       "click here", "skicka", "submit", "send", "vidare", "continue"]
 
         for cta in ctas:
-            cta_text = cta.get("text", "").lower().strip()
+            cta_text = (cta.get("text") or "").lower().strip()
             if cta_text in weak_texts or any(weak in cta_text for weak in ["läs mer", "klicka"]):
                 problems.append({
                     "tag": "generic_cta_text",
@@ -212,23 +270,28 @@ class ConversionAnalyzer:
 
         # Kontrollera om det finns starka CTA:er
         strong_patterns = ["gratis", "free", "starta", "start", "prova", "try",
-                          "boka", "book", "få", "get", "hämta", "ladda"]
+                          "boka", "book", "få ", "get", "hämta", "ladda"]
         has_strong_cta = any(
-            any(p in cta.get("text", "").lower() for p in strong_patterns)
+            any(p in (cta.get("text") or "").lower() for p in strong_patterns)
             for cta in ctas
         )
 
         # Beräkna poäng
+        high_problems = len([p for p in problems if p["severity"] == "high"])
+        medium_problems = len([p for p in problems if p["severity"] == "medium"])
+
         if not ctas:
             score = 1
-        elif len([p for p in problems if p["severity"] == "high"]) > 0:
-            score = 2  # Har generisk text
-        elif len(ctas) == 1:
-            score = 3  # Tydlig men ej multipel
+        elif high_problems > 0:
+            score = 2  # Har generisk text eller annat allvarligt problem
+        elif medium_problems >= 2:
+            score = 2  # Flera medium-problem (t.ex. dubletter + för många)
+        elif medium_problems == 1:
+            score = 3  # Ett medium-problem
         elif has_strong_cta and len(ctas) >= 2:
-            score = 4 if problems else 5
+            score = 5  # Inga problem, starkt språk, multipla
         else:
-            score = 3
+            score = 3  # Saknar starkt språk
 
         return {
             "score": max(1, min(5, score)),
@@ -718,10 +781,31 @@ class ConversionAnalyzer:
             ("offer_structure", self.analyze_offer_structure),
         ]
 
+        # Kontextuella beskrivningar när inga strukturella problem hittas
+        # (bättre än generisk "Inga problem identifierade" som döljer nyanser)
+        positive_explanations = {
+            "value_proposition": "Tydlig rubrik och underrubrik — värdeerbjudandet kommuniceras på strukturnivå.",
+            "call_to_action": "Multipla CTA:er med handlingsorienterat språk och god spridning.",
+            "social_proof": "God närvaro av kundreferenser, betyg eller sociala bevis.",
+            "lead_magnets": "Gated innehåll och lead magnets finns för att fånga besökare.",
+            "form_design": "Formulär med tydliga fält och konverteringsvänlig design.",
+            "guiding_content": "Tydlig väg framåt för besökaren genom sidan.",
+            "offer_structure": "Erbjudandet är segmenterat med tydlig prissättning.",
+        }
+
         for criterion, method in analysis_methods:
             result = method()
             score = result["score"]
             weight = CATEGORY_WEIGHTS[criterion]
+
+            if result["problems"]:
+                explanation = " | ".join([p["description"] for p in result["problems"]])
+            else:
+                # Kontextuell positiv förklaring baserad på kriterium
+                explanation = positive_explanations.get(
+                    criterion,
+                    "Inga strukturella problem identifierade."
+                )
 
             criteria_analysis.append({
                 "criterion": criterion,
@@ -733,7 +817,7 @@ class ConversionAnalyzer:
                 "status": get_status_from_score(score),
                 "problems": result["problems"],
                 # Legacy: Keep explanation for backwards compatibility
-                "explanation": " | ".join([p["description"] for p in result["problems"]]) if result["problems"] else "Inga problem identifierade",
+                "explanation": explanation,
             })
 
         # Calculate weighted overall score
