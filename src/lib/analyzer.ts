@@ -423,7 +423,7 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
 
 async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout - full 10-category JSON gen on Sonnet exceeds 25s (route budget is 120s)
+  const timeout = setTimeout(() => controller.abort(), 100000); // 100s - kept below the 120s function limit so a slow call aborts gracefully into fallback instead of being killed mid-flight
 
   try {
     console.log("Calling Claude Sonnet 4.6 API (full, 10 categories)...");
