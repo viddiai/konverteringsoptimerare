@@ -421,64 +421,100 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
   };
 }
 
+// Transient statuses worth retrying: rate limit (429) and Anthropic overload/5xx (529, 5xx)
+function isRetryableStatus(status: number): boolean {
+  return status === 429 || status === 529 || status >= 500;
+}
+
 async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 100000); // 100s - kept below the 120s function limit so a slow call aborts gracefully into fallback instead of being killed mid-flight
+  // The full call intermittently hits 429/529 on Anthropic; a single failure used to
+  // collapse the whole analysis into the "Kunde inte analysera" fallback. Retry with
+  // backoff, bounded by a total deadline that stays under the 120s function limit.
+  const overallDeadline = Date.now() + 110000;
+  const maxAttempts = 3;
+  let lastError = '';
 
-  try {
-    console.log("Calling Claude Sonnet 4.6 API (full, 10 categories)...");
-    const startTime = Date.now();
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const remaining = overallDeadline - Date.now();
+    if (remaining < 5000) break; // not enough budget for another meaningful attempt
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        system: system,
-        messages: [
-          { role: 'user', content: user }
-        ]
-      }),
-      signal: controller.signal
-    });
+    const controller = new AbortController();
+    const perAttemptTimeout = Math.min(45000, remaining);
+    const timeout = setTimeout(() => controller.abort(), perAttemptTimeout);
 
-    clearTimeout(timeout);
-    console.log(`Claude Sonnet 4.6 response in ${Date.now() - startTime}ms, status: ${response.status}`);
+    try {
+      console.log(`Calling Claude Sonnet 4.6 API (full, 10 categories), attempt ${attempt}/${maxAttempts}...`);
+      const startTime = Date.now();
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error("Claude API error:", response.status, errorText);
-      return { c: [] };
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2000,
+          system: system,
+          messages: [
+            { role: 'user', content: user }
+          ]
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeout);
+      console.log(`Claude Sonnet 4.6 response in ${Date.now() - startTime}ms, status: ${response.status}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Claude API error:", response.status, errorText);
+        lastError = `HTTP ${response.status}`;
+        if (isRetryableStatus(response.status) && attempt < maxAttempts) {
+          const retryAfter = parseInt(response.headers.get('retry-after') || '', 10);
+          const backoff = Math.min(isNaN(retryAfter) ? attempt * 2000 : retryAfter * 1000, 8000);
+          if (overallDeadline - Date.now() > backoff + 5000) {
+            console.log(`Retrying full call in ${backoff}ms after ${response.status}`);
+            await new Promise(r => setTimeout(r, backoff));
+            continue;
+          }
+        }
+        return { c: [] };
+      }
+
+      const data = await response.json();
+      const content = data.content?.[0]?.text;
+      if (!content) {
+        console.error("Claude empty response:", JSON.stringify(data).substring(0, 500));
+        return { c: [] };
+      }
+
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.error("No JSON found in Claude response:", content.substring(0, 300));
+        return { c: [] };
+      }
+
+      console.log("Claude success, parsing JSON:", jsonMatch[0].substring(0, 300));
+      const parsed = JSON.parse(jsonMatch[0]);
+      console.log("Parsed categories count:", parsed.c?.length || 0);
+      return parsed;
+    } catch (e) {
+      clearTimeout(timeout);
+      lastError = e instanceof Error ? e.message : String(e);
+      console.error(`Claude API failed (attempt ${attempt}):`, lastError);
+      // Network/abort errors are transient — retry if budget remains
+      if (attempt < maxAttempts && overallDeadline - Date.now() > 7000) {
+        const backoff = attempt * 2000;
+        await new Promise(r => setTimeout(r, backoff));
+        continue;
+      }
     }
-
-    const data = await response.json();
-    const content = data.content?.[0]?.text;
-    if (!content) {
-      console.error("Claude empty response:", JSON.stringify(data).substring(0, 500));
-      return { c: [] };
-    }
-
-    // Extract JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error("No JSON found in Claude response:", content.substring(0, 300));
-      return { c: [] };
-    }
-
-    console.log("Claude success, parsing JSON:", jsonMatch[0].substring(0, 300));
-    const parsed = JSON.parse(jsonMatch[0]);
-    console.log("Parsed categories count:", parsed.c?.length || 0);
-    return parsed;
-  } catch (e) {
-    clearTimeout(timeout);
-    console.error("Claude API failed:", e instanceof Error ? e.message : e);
-    return { c: [] };
   }
+
+  console.error("Claude API exhausted retries:", lastError);
+  return { c: [] };
 }
 
 // Fallback for non-streaming
