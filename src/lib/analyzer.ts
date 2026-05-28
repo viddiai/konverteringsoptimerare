@@ -148,7 +148,7 @@ async function callClaudeQuick(apiKey: string, system: string, user: string): Pr
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6-latest',
+        model: 'claude-sonnet-4-6',
         max_tokens: 500,
         system: system,
         messages: [
@@ -423,7 +423,7 @@ function generateLocalSummary(categories: AnalysisCategory[], scrapedData: Scrap
 
 async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 25000); // 25s timeout - Sonnet needs more time than Haiku
+  const timeout = setTimeout(() => controller.abort(), 60000); // 60s timeout - full 10-category JSON gen on Sonnet exceeds 25s (route budget is 120s)
 
   try {
     console.log("Calling Claude Sonnet 4.6 API (full, 10 categories)...");
@@ -437,7 +437,7 @@ async function callClaude(apiKey: string, system: string, user: string): Promise
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-6-latest',
+        model: 'claude-sonnet-4-6',
         max_tokens: 2000,
         system: system,
         messages: [
