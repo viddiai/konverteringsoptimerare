@@ -429,8 +429,10 @@ function isRetryableStatus(status: number): boolean {
 async function callClaude(apiKey: string, system: string, user: string): Promise<any> {
   // The full call intermittently hits 429/529 on Anthropic; a single failure used to
   // collapse the whole analysis into the "Kunde inte analysera" fallback. Retry with
-  // backoff, bounded by a total deadline that stays under the 120s function limit.
-  const overallDeadline = Date.now() + 110000;
+  // backoff, bounded by a total deadline. Scraping (up to ~20s) runs before this, so the
+  // budget is 90s to keep scrape + Claude under the 120s function limit and the 115s
+  // client timeout in page.tsx.
+  const overallDeadline = Date.now() + 90000;
   const maxAttempts = 3;
   let lastError = '';
 

@@ -125,11 +125,15 @@ export default function Home() {
             setCurrentTipIndex((prev) => (prev + 1) % LOADING_TIPS.length);
         }, 5000); // 5s between tips
 
-        // Client-side timeout to prevent infinite loading (matches Vercel Pro maxDuration)
+        // Client-side timeout to prevent infinite loading. Must stay ABOVE the server's
+        // worst case (scrape + Claude retries, see callClaude deadline) but under the
+        // 120s Vercel maxDuration, otherwise we abort a run the server is about to finish.
         const controller = new AbortController();
         const clientTimeout = setTimeout(() => {
             controller.abort();
-        }, 90000); // 90 second max
+        }, 115000); // 115 second max
+
+        let gotQuickResult = false;
 
         try {
             const response = await fetch('/api/analyze', {
@@ -182,6 +186,7 @@ export default function Home() {
                             setProgressMessage(chunk.data.message);
                         } else if (chunk.type === 'quick_result') {
                             // Phase 1: Quick result - show teaser immediately!
+                            gotQuickResult = true;
                             setQuickResult(chunk.data);
                             setAppState('teaser');
                             setIsLoadingFull(true);
@@ -231,7 +236,11 @@ export default function Home() {
             } else {
                 setError(err instanceof Error ? err.message : 'Något gick fel');
             }
-            setAppState('input');
+            // Behåll teasern om snabbanalysen redan hunnit visas — kasta inte bort resultatet
+            if (!gotQuickResult) {
+                setAppState('input');
+            }
+            setIsLoadingFull(false);
         } finally {
             clearTimeout(clientTimeout);
             clearInterval(tipInterval);
